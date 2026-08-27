@@ -1,9 +1,33 @@
 {
   "name": "whatsapp-guest-concierge",
   "version": "0.1.0",
-  "description": "WhatsApp AI concierge for private holiday groups — Twilio + Claude + Google Calendar, with a durable broadcast system.",
-  "type": "module",
+  "description": "WhatsApp AI concierge for private holiday groups \u2014 Twilio + Claude + Google Calendar, with a durable broadcast system.",
+  "keywords": [
+    "whatsapp",
+    "twilio",
+    "claude",
+    "openai",
+    "gemini",
+    "chatbot",
+    "google-calendar",
+    "llm",
+    "tool-use",
+    "rag",
+    "notion",
+    "typescript",
+    "fastify"
+  ],
   "license": "MIT",
+  "author": "Ilhan Akbudak",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/ilhanakbudak/whatsapp-guest-concierge.git"
+  },
+  "bugs": {
+    "url": "https://github.com/ilhanakbudak/whatsapp-guest-concierge/issues"
+  },
+  "homepage": "https://github.com/ilhanakbudak/whatsapp-guest-concierge#readme",
+  "type": "module",
   "engines": {
     "node": ">=22"
   },

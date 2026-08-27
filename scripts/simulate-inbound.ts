@@ -7,7 +7,7 @@
  * verifies that PUBLIC_URL matches what the server expects.
  *
  *   npm run simulate -- "what time is the boat today?"
- *   npm run simulate -- "what's the wifi?" --from +447700900001
+ *   npm run simulate -- "what's the wifi?" --from +447700900002
  */
 import { createHmac } from "node:crypto";
 import { loadConfig } from "../src/config/env.js";
@@ -26,12 +26,17 @@ if (!message) {
   process.exit(1);
 }
 
+/** A reserved fictional number (Ofcom +44 7700 900xxx), matching the seed data. */
+const DEFAULT_FROM = "+447700900001";
+
 const config = loadConfig();
 const base = value("--url") ?? config.PUBLIC_URL;
 const url = `${base}/webhooks/twilio/inbound`;
 
 const params: Record<string, string> = {
-  From: `whatsapp:${value("--from") ?? "+447700900001"}`,
+  // Defaults to the first seeded demo guest. Never hard-code a real number
+  // here — this file is public.
+  From: `whatsapp:${value("--from") ?? DEFAULT_FROM}`,
   To: config.TWILIO_WHATSAPP_FROM,
   Body: message,
   MessageSid: `SMsim${Date.now()}`,
