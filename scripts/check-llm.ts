@@ -12,7 +12,7 @@
  */
 import { ConciergeHandler } from "../src/ai/handler.js";
 import { createLlmProvider } from "../src/ai/registry.js";
-import { MockCalendarClient } from "../src/calendar/mock.js";
+import { createCalendarClient } from "../src/calendar/index.js";
 import { ScheduleService } from "../src/calendar/schedule.js";
 import { loadConfig } from "../src/config/env.js";
 import { openDatabase } from "../src/db/index.js";
@@ -49,12 +49,11 @@ const guest = repos.guests.upsert({
   notes: "Vegetarian",
 });
 
-// The mock calendar is used deliberately: this checks the LLM and its tool
-// round trip, not Google.
-const schedule = new ScheduleService(
-  new MockCalendarClient({ timeZone: config.CALENDAR_TIMEZONE }),
-  { timeZone: config.CALENDAR_TIMEZONE },
-);
+// Uses whichever calendar is configured, so this doubles as a full-stack check
+// once CALENDAR_DEMO is off.
+const schedule = new ScheduleService(createCalendarClient(config), {
+  timeZone: config.CALENDAR_TIMEZONE,
+});
 
 const handler = new ConciergeHandler({
   provider,
@@ -72,7 +71,8 @@ const handler = new ConciergeHandler({
 
 console.log(`provider  ${provider.name}`);
 console.log(`model     ${provider.model}`);
-console.log(`timezone  ${config.CALENDAR_TIMEZONE}\n`);
+console.log(`timezone  ${config.CALENDAR_TIMEZONE}`);
+console.log(`calendar  ${config.demo.calendar ? "mock" : "live Google Calendar"}\n`);
 
 for (const question of QUESTIONS) {
   const started = Date.now();

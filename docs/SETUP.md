@@ -178,6 +178,26 @@ getting this wrong gives guests the wrong day's schedule.
 | Recurring events missing | Not possible via this client — it always expands them — but check the event actually repeats into the window |
 | Times an hour or three off | `CALENDAR_TIMEZONE` doesn't match the villa's actual timezone |
 
+### No calendar to test against?
+
+The service account can create and own one itself, populated with the demo
+itinerary — no manual setup, and no sharing step to forget:
+
+```bash
+npm run setup:calendar
+```
+
+It prints the new calendar's ID; put that in `GOOGLE_CALENDAR_ID` and set
+`CALENDAR_DEMO=false`. To edit the events yourself in the normal Google Calendar
+interface, share it with your own account:
+
+```bash
+npm run setup:calendar -- --share you@example.com
+```
+
+`--reset` replaces the events, `--delete` removes the calendar. This script asks
+for read/write scope; the bot at runtime only ever requests read-only.
+
 ### Testing without Google
 
 Set `CALENDAR_DEMO=true` and the bot uses a built-in villa itinerary that is
