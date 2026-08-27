@@ -28,6 +28,18 @@ export const PROVIDER_KEY_VAR = {
   mock: null,
 } as const satisfies Record<LlmProvider, keyof RawEnv | null>;
 
+/**
+ * Model-name prefixes each provider answers to. Used to catch a mismatched
+ * LLM_PROVIDER / LLM_MODEL pair at boot rather than as a confusing 404 on the
+ * first guest message.
+ */
+export const PROVIDER_MODEL_PREFIXES: Record<LlmProvider, readonly string[]> = {
+  anthropic: ["claude-"],
+  openai: ["gpt-", "o1-", "o3-", "o4-", "ft:"],
+  gemini: ["gemini-"],
+  mock: ["mock"],
+};
+
 export const KB_PROVIDERS = ["local", "notion", "google-doc"] as const;
 export type KbProvider = (typeof KB_PROVIDERS)[number];
 
@@ -43,6 +55,12 @@ const schema = z.object({
     .enum(["fatal", "error", "warn", "info", "debug", "trace"])
     .default("info"),
   DEMO_MODE: bool.default(true),
+  // Per-integration overrides. Each defaults to DEMO_MODE, so the single switch
+  // still works, but a real Twilio can be tested against a mock calendar (and
+  // vice versa) without inventing credentials for the parts you aren't testing.
+  TWILIO_DEMO: bool.optional(),
+  CALENDAR_DEMO: bool.optional(),
+  LLM_DEMO: bool.optional(),
   PUBLIC_URL: z.string().url().default("http://localhost:3000"),
 
   DATABASE_PATH: z.string().default("./data/concierge.db"),
@@ -85,7 +103,15 @@ const schema = z.object({
 
 export type RawEnv = z.infer<typeof schema>;
 
+/** Which integrations are mocked, after applying DEMO_MODE and its overrides. */
+export interface DemoFlags {
+  twilio: boolean;
+  calendar: boolean;
+  llm: boolean;
+}
+
 export interface AppConfig extends RawEnv {
+  demo: DemoFlags;
   /** Resolved model: LLM_MODEL if set, else the provider default. */
   llmModel: string;
   /** Parsed ADMIN_PHONE_NUMBERS. */
@@ -95,25 +121,66 @@ export interface AppConfig extends RawEnv {
 }
 
 /**
- * Requirements that only apply once DEMO_MODE is off — in demo mode every
- * external dependency is mocked, so none of these are needed.
+ * A heuristic, deliberately: it only fires when the model clearly belongs to a
+ * *different* known provider, so an unfamiliar or fine-tuned name passes through.
  */
-function liveModeIssues(env: RawEnv): string[] {
+function modelProviderMismatch(provider: LlmProvider, model: string): string | null {
+  const expected = PROVIDER_MODEL_PREFIXES[provider];
+  if (expected.some((prefix) => model.startsWith(prefix))) return null;
+
+  const actual = (Object.keys(PROVIDER_MODEL_PREFIXES) as LlmProvider[]).find(
+    (candidate) =>
+      candidate !== provider &&
+      PROVIDER_MODEL_PREFIXES[candidate].some((prefix) => model.startsWith(prefix)),
+  );
+
+  if (!actual) return null;
+
+  return (
+    `LLM_MODEL "${model}" looks like a ${actual} model but LLM_PROVIDER is "${provider}". ` +
+    `Set LLM_PROVIDER=${actual}, or choose a model starting with ` +
+    `${expected.map((e) => `"${e}"`).join(" / ")}.`
+  );
+}
+
+function resolveDemoFlags(env: RawEnv): DemoFlags {
+  return {
+    twilio: env.TWILIO_DEMO ?? env.DEMO_MODE,
+    calendar: env.CALENDAR_DEMO ?? env.DEMO_MODE,
+    llm: env.LLM_DEMO ?? env.DEMO_MODE,
+  };
+}
+
+/**
+ * Credentials are required only for the integrations actually running live.
+ * A mocked integration needs nothing, so `DEMO_MODE=false CALENDAR_DEMO=true`
+ * is a valid way to test Twilio end to end before you have a Google project.
+ */
+function liveModeIssues(env: RawEnv, demo: DemoFlags, model: string): string[] {
   const issues: string[] = [];
 
-  const keyVar = PROVIDER_KEY_VAR[env.LLM_PROVIDER];
-  if (keyVar && !env[keyVar]) {
-    issues.push(`LLM_PROVIDER is "${env.LLM_PROVIDER}" but ${keyVar} is not set`);
+  const mismatch = modelProviderMismatch(env.LLM_PROVIDER, model);
+  if (mismatch) issues.push(mismatch);
+
+  if (!demo.llm) {
+    const keyVar = PROVIDER_KEY_VAR[env.LLM_PROVIDER];
+    if (keyVar && !env[keyVar]) {
+      issues.push(`LLM_PROVIDER is "${env.LLM_PROVIDER}" but ${keyVar} is not set`);
+    }
   }
 
-  if (!env.TWILIO_ACCOUNT_SID) issues.push("TWILIO_ACCOUNT_SID is required");
-  if (!env.TWILIO_AUTH_TOKEN) issues.push("TWILIO_AUTH_TOKEN is required");
-  if (!env.GOOGLE_CALENDAR_ID) issues.push("GOOGLE_CALENDAR_ID is required");
+  if (!demo.twilio) {
+    if (!env.TWILIO_ACCOUNT_SID) issues.push("TWILIO_ACCOUNT_SID is required");
+    if (!env.TWILIO_AUTH_TOKEN) issues.push("TWILIO_AUTH_TOKEN is required");
+  }
 
-  if (!env.GOOGLE_SERVICE_ACCOUNT_FILE && !env.GOOGLE_SERVICE_ACCOUNT_JSON) {
-    issues.push(
-      "one of GOOGLE_SERVICE_ACCOUNT_FILE or GOOGLE_SERVICE_ACCOUNT_JSON is required",
-    );
+  if (!demo.calendar) {
+    if (!env.GOOGLE_CALENDAR_ID) issues.push("GOOGLE_CALENDAR_ID is required");
+    if (!env.GOOGLE_SERVICE_ACCOUNT_FILE && !env.GOOGLE_SERVICE_ACCOUNT_JSON) {
+      issues.push(
+        "one of GOOGLE_SERVICE_ACCOUNT_FILE or GOOGLE_SERVICE_ACCOUNT_JSON is required",
+      );
+    }
   }
 
   if (env.KB_PROVIDER === "notion") {
@@ -124,8 +191,13 @@ function liveModeIssues(env: RawEnv): string[] {
     issues.push("KB_PROVIDER is google-doc but GOOGLE_DOC_ID is not set");
   }
 
-  if (env.NODE_ENV === "production" && env.ADMIN_API_TOKEN === "change-me") {
-    issues.push("ADMIN_API_TOKEN must be changed from its default in production");
+  if (env.NODE_ENV === "production") {
+    if (env.ADMIN_API_TOKEN === "change-me") {
+      issues.push("ADMIN_API_TOKEN must be changed from its default in production");
+    }
+    if (!env.TWILIO_VALIDATE_SIGNATURE) {
+      issues.push("TWILIO_VALIDATE_SIGNATURE must not be disabled in production");
+    }
   }
 
   return issues;
@@ -142,21 +214,23 @@ export function loadConfig(source: NodeJS.ProcessEnv = process.env): AppConfig {
   }
 
   const env = parsed.data;
+  const demo = resolveDemoFlags(env);
+  const llmModel = env.LLM_MODEL ?? DEFAULT_MODELS[env.LLM_PROVIDER];
 
-  if (!env.DEMO_MODE) {
-    const issues = liveModeIssues(env);
-    if (issues.length > 0) {
-      throw new Error(
-        `DEMO_MODE is off, so live credentials are required:\n` +
-          issues.map((i) => `  - ${i}`).join("\n") +
-          `\n\nSet DEMO_MODE=true to run without any credentials.`,
-      );
-    }
+  const issues = liveModeIssues(env, demo, llmModel);
+  if (issues.length > 0) {
+    throw new Error(
+      `Missing configuration for the integrations running live:\n` +
+        issues.map((i) => `  - ${i}`).join("\n") +
+        `\n\nSet DEMO_MODE=true to mock everything, or mock just one integration ` +
+        `with TWILIO_DEMO / CALENDAR_DEMO / LLM_DEMO.`,
+    );
   }
 
   return {
     ...env,
-    llmModel: env.LLM_MODEL ?? DEFAULT_MODELS[env.LLM_PROVIDER],
+    demo,
+    llmModel,
     adminPhoneNumbers: env.ADMIN_PHONE_NUMBERS.split(",")
       .map((n) => n.trim())
       .filter(Boolean),

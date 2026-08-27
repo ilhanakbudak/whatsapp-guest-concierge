@@ -4,6 +4,9 @@ import { createRepositories, type Repositories } from "./db/repositories/index.j
 import { createLogger, type Logger } from "./lib/logger.js";
 import { TokenBucketLimiter } from "./lib/rate-limit.js";
 import { BackgroundTaskRunner, type TaskRunner } from "./lib/tasks.js";
+import { createCalendarClient } from "./calendar/index.js";
+import { ScheduleService } from "./calendar/schedule.js";
+import type { CalendarClient } from "./calendar/types.js";
 import { createWhatsAppClient } from "./whatsapp/index.js";
 import { PlaceholderHandler, type MessageHandler } from "./whatsapp/handler.js";
 import type { WhatsAppClient } from "./whatsapp/types.js";
@@ -19,6 +22,8 @@ export interface AppContext {
   db: Db;
   repos: Repositories;
   whatsapp: WhatsAppClient;
+  calendar: CalendarClient;
+  schedule: ScheduleService;
   handler: MessageHandler;
   tasks: TaskRunner;
   rateLimiter: TokenBucketLimiter;
@@ -31,6 +36,7 @@ export interface CreateContextOptions {
   databasePath?: string;
   /** Overrides for tests; each defaults to the configured implementation. */
   whatsapp?: WhatsAppClient;
+  calendar?: CalendarClient;
   handler?: MessageHandler;
 }
 
@@ -43,13 +49,17 @@ export function createContext(options: CreateContextOptions = {}): AppContext {
     onMigration: (m) => logger.info({ migration: m.name }, "applied migration"),
   });
 
-  if (config.DEMO_MODE) {
-    logger.warn("DEMO_MODE is on — Twilio, Calendar and the knowledge base are mocked");
+  const mocked = Object.entries(config.demo)
+    .filter(([, isMocked]) => isMocked)
+    .map(([name]) => name);
+  if (mocked.length > 0) {
+    logger.warn({ mocked }, "running with mocked integrations");
   }
 
   logger.info({ provider: config.LLM_PROVIDER, model: config.llmModel }, "llm provider selected");
 
   const tasks = new BackgroundTaskRunner(logger);
+  const calendar = options.calendar ?? createCalendarClient(config);
 
   return {
     config,
@@ -57,6 +67,8 @@ export function createContext(options: CreateContextOptions = {}): AppContext {
     db,
     repos: createRepositories(db),
     whatsapp: options.whatsapp ?? createWhatsAppClient(config, logger),
+    calendar,
+    schedule: new ScheduleService(calendar, { timeZone: config.CALENDAR_TIMEZONE }),
     handler: options.handler ?? new PlaceholderHandler(),
     tasks,
     rateLimiter: new TokenBucketLimiter(

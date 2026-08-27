@@ -151,9 +151,13 @@ where it can be reviewed and tested. `n8n/` ships importable workflows for the j
 n8n is genuinely good at — the daily knowledge-base refresh and a daily delivery
 summary.
 
-**The model is configurable.** `ANTHROPIC_MODEL` defaults to `claude-opus-5`. The
-brief named `claude-sonnet-4-20250514`, which has since been retired; set
-`ANTHROPIC_MODEL=claude-sonnet-5` for the equivalent current Sonnet-class model.
+**The LLM provider is swappable.** The brief named the Claude API, and Claude is
+the default — but the tool-use loop lives in this repo rather than inside a vendor
+SDK, so `LLM_PROVIDER=anthropic|openai|gemini` plus the matching API key is the
+entire switch. The brief also named `claude-sonnet-4-20250514`, which has since
+been retired; `LLM_MODEL=claude-sonnet-5` is the current Sonnet-class equivalent.
+A model that doesn't match its provider is rejected at boot rather than failing on
+a guest's first message.
 
 ---
 
@@ -161,10 +165,10 @@ brief named `claude-sonnet-4-20250514`, which has since been retired; set
 
 | Phase | |
 |---|---|
-| Scaffold, config, storage | 🚧 |
-| Twilio inbound + signature verification | ⬜ |
-| Google Calendar integration | ⬜ |
-| Claude tool-use loop | ⬜ |
+| Scaffold, config, storage | ✅ |
+| Twilio inbound + signature verification | ✅ |
+| Google Calendar integration | ✅ |
+| LLM tool-use loop (Claude / GPT / Gemini) | 🚧 |
 | Knowledge base providers + refresh | ⬜ |
 | Broadcast queue + delivery tracking | ⬜ |
 | Admin dashboard + WhatsApp commands | ⬜ |

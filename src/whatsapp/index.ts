@@ -5,7 +5,7 @@ import { TwilioWhatsAppClient } from "./twilio.js";
 import type { WhatsAppClient } from "./types.js";
 
 export function createWhatsAppClient(config: AppConfig, logger: Logger): WhatsAppClient {
-  if (config.DEMO_MODE) {
+  if (config.demo.twilio) {
     return new MockWhatsAppClient();
   }
 

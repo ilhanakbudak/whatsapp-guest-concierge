@@ -24,6 +24,62 @@ describe("demo mode", () => {
   });
 });
 
+describe("per-integration demo flags", () => {
+  it("DEMO_MODE mocks everything by default", () => {
+    expect(loadConfig({ DEMO_MODE: "true" }).demo).toEqual({
+      twilio: true,
+      calendar: true,
+      llm: true,
+    });
+  });
+
+  it("an override wins over the master switch", () => {
+    const config = loadConfig({ ...liveEnv, CALENDAR_DEMO: "true", LLM_DEMO: "true" });
+    expect(config.demo).toEqual({ twilio: false, calendar: true, llm: true });
+  });
+
+  it("allows a live Twilio with no Google project at all", () => {
+    // The scenario that motivated this: testing WhatsApp end to end before the
+    // Google service account exists.
+    expect(() =>
+      loadConfig({
+        DEMO_MODE: "false",
+        CALENDAR_DEMO: "true",
+        LLM_DEMO: "true",
+        TWILIO_ACCOUNT_SID: "AC123",
+        TWILIO_AUTH_TOKEN: "token",
+      }),
+    ).not.toThrow();
+  });
+
+  it("still demands credentials for an integration left live", () => {
+    expect(() =>
+      loadConfig({
+        DEMO_MODE: "false",
+        CALENDAR_DEMO: "true",
+        LLM_DEMO: "true",
+        TWILIO_ACCOUNT_SID: "AC123",
+        // auth token deliberately absent
+      }),
+    ).toThrow(/TWILIO_AUTH_TOKEN/);
+  });
+
+  it("mocking an integration silences only its own requirements", () => {
+    const message = (() => {
+      try {
+        loadConfig({ DEMO_MODE: "false", TWILIO_DEMO: "true", LLM_DEMO: "true" });
+        return "";
+      } catch (err) {
+        return (err as Error).message;
+      }
+    })();
+
+    expect(message).toContain("GOOGLE_CALENDAR_ID");
+    expect(message).not.toContain("TWILIO_ACCOUNT_SID");
+    expect(message).not.toContain("ANTHROPIC_API_KEY");
+  });
+});
+
 describe("llm provider selection", () => {
   it.each([
     ["anthropic", "ANTHROPIC_API_KEY"],
@@ -63,6 +119,49 @@ describe("llm provider selection", () => {
   it("mock needs no key even in live mode", () => {
     const { ANTHROPIC_API_KEY: _drop, ...rest } = liveEnv;
     expect(() => loadConfig({ ...rest, LLM_PROVIDER: "mock" })).not.toThrow();
+  });
+});
+
+describe("provider / model mismatch", () => {
+  it("catches an OpenAI model paired with the anthropic provider", () => {
+    expect(() =>
+      loadConfig({ DEMO_MODE: "true", LLM_PROVIDER: "anthropic", LLM_MODEL: "gpt-5.6-luna" }),
+    ).toThrow(/looks like a openai model but LLM_PROVIDER is "anthropic"/);
+  });
+
+  it("catches a Claude model paired with the openai provider", () => {
+    expect(() =>
+      loadConfig({ DEMO_MODE: "true", LLM_PROVIDER: "openai", LLM_MODEL: "claude-opus-5" }),
+    ).toThrow(/LLM_PROVIDER=anthropic/);
+  });
+
+  it("catches a Gemini model paired with the wrong provider", () => {
+    expect(() =>
+      loadConfig({ DEMO_MODE: "true", LLM_PROVIDER: "openai", LLM_MODEL: "gemini-3.7-flash" }),
+    ).toThrow(/gemini/);
+  });
+
+  it.each([
+    ["anthropic", "claude-sonnet-5"],
+    ["openai", "gpt-5.6-terra"],
+    ["openai", "ft:gpt-4o-2024-08-06:acme::abc123"],
+    ["gemini", "gemini-3.7-flash"],
+  ])("accepts %s with %s", (provider, model) => {
+    expect(() =>
+      loadConfig({ DEMO_MODE: "true", LLM_PROVIDER: provider, LLM_MODEL: model }),
+    ).not.toThrow();
+  });
+
+  it("lets an unfamiliar model name through rather than guessing", () => {
+    // A self-hosted or Azure deployment name belongs to no known family; the
+    // check only fires when the model clearly belongs to a *different* provider.
+    expect(() =>
+      loadConfig({ DEMO_MODE: "true", LLM_PROVIDER: "openai", LLM_MODEL: "my-azure-deployment" }),
+    ).not.toThrow();
+  });
+
+  it("applies to the provider defaults too", () => {
+    expect(() => loadConfig({ DEMO_MODE: "true", LLM_PROVIDER: "gemini" })).not.toThrow();
   });
 });
 
@@ -112,6 +211,17 @@ describe("live mode validation", () => {
 
   it("refuses the default admin token in production", () => {
     expect(() => loadConfig({ ...liveEnv, NODE_ENV: "production" })).toThrow(/ADMIN_API_TOKEN/);
+  });
+
+  it("refuses disabled signature validation in production", () => {
+    expect(() =>
+      loadConfig({
+        ...liveEnv,
+        NODE_ENV: "production",
+        ADMIN_API_TOKEN: "a-real-token",
+        TWILIO_VALIDATE_SIGNATURE: "false",
+      }),
+    ).toThrow(/TWILIO_VALIDATE_SIGNATURE/);
   });
 });
 

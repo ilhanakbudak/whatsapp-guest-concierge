@@ -123,7 +123,67 @@ _Arrives with the LLM layer. Set `LLM_PROVIDER` and the matching key; see
 
 ## 3. Google Calendar
 
-_Arrives with the calendar integration._
+The calendar is read with a **service account** — a robot Google account with its
+own email address. Nobody has to stay logged in, and it can only read.
+
+### Create the service account
+
+1. Go to [console.cloud.google.com](https://console.cloud.google.com) and create
+   a project (or pick an existing one).
+2. **APIs & Services → Library →** search "Google Calendar API" → **Enable**.
+3. **APIs & Services → Credentials → Create credentials → Service account.**
+   Give it a name like `villa-concierge`. No roles are needed — access is granted
+   on the calendar itself, in the next step.
+4. Open the new service account → **Keys → Add key → Create new key → JSON.**
+   A `.json` file downloads. Treat it like a password.
+
+### Share the calendar with it
+
+**This is the step everyone forgets.** Creating the service account does not give
+it access to anything.
+
+1. Copy the service account's email address. It looks like
+   `villa-concierge@your-project.iam.gserviceaccount.com`.
+2. In Google Calendar, open the villa calendar's **Settings and sharing**.
+3. Under **Share with specific people**, add that email with
+   **See all event details**.
+4. On the same settings page, copy the **Calendar ID** (often an address ending
+   `@group.calendar.google.com`).
+
+### Configure
+
+```bash
+GOOGLE_CALENDAR_ID=...@group.calendar.google.com
+GOOGLE_SERVICE_ACCOUNT_FILE=./google-credentials.json
+CALENDAR_TIMEZONE=Europe/Istanbul
+CALENDAR_DEMO=false
+```
+
+Put the downloaded JSON at that path. It is already covered by `.gitignore`.
+
+For hosts like Railway and Render that have no filesystem to upload to, paste the
+entire JSON into `GOOGLE_SERVICE_ACCOUNT_JSON` instead — escaped newlines in the
+private key are handled.
+
+`CALENDAR_TIMEZONE` must be the **villa's** timezone, not the server's. It decides
+what "tomorrow" means: at 21:30 UTC it is already the next day in Istanbul, and
+getting this wrong gives guests the wrong day's schedule.
+
+### Troubleshooting
+
+| Symptom | Cause |
+|---|---|
+| `404 ... check GOOGLE_CALENDAR_ID` | Wrong calendar ID, or the calendar isn't shared with the service account |
+| `403 ... must be shared with the service account email` | Calendar exists but the service account has no access |
+| Recurring events missing | Not possible via this client — it always expands them — but check the event actually repeats into the window |
+| Times an hour or three off | `CALENDAR_TIMEZONE` doesn't match the villa's actual timezone |
+
+### Testing without Google
+
+Set `CALENDAR_DEMO=true` and the bot uses a built-in villa itinerary that is
+generated relative to today, so it never goes stale. This works even with
+`DEMO_MODE=false`, which is how you test a real Twilio number before the Google
+project exists.
 
 ## 4. Notion or Google Docs knowledge base
 
