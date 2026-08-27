@@ -146,8 +146,11 @@ Point `KB_PROVIDER` at whichever source the team prefers to maintain:
 | `notion` | A Notion page | The team already lives in Notion |
 | `google-doc` | A Google Doc | The team already lives in Google Docs |
 
-Content is fetched on a daily cron, content-hashed so an unchanged document
-short-circuits, and refreshable on demand from the dashboard or `!refresh`.
+Fetched on a daily cron and refreshable on demand via `POST /admin/kb/refresh`.
+Content is hashed, so an unchanged document stores no new snapshot **and returns
+the byte-identical string** — which is what keeps the prompt cache warm. If the
+source is unreachable the bot serves the last stored copy rather than losing its
+house knowledge for the duration of someone else's outage.
 
 ---
 
@@ -180,7 +183,7 @@ a guest's first message.
 | Twilio inbound + signature verification | ✅ |
 | Google Calendar integration | ✅ |
 | LLM tool-use loop (Claude / GPT / Gemini) | ✅ |
-| Knowledge base (local Markdown; Notion / Google Doc next) | 🚧 |
+| Knowledge base: local Markdown, Notion, Google Doc + refresh | ✅ |
 | Broadcast queue + delivery tracking | ⬜ |
 | Admin dashboard + WhatsApp commands | ⬜ |
 | Docker, deploy config, n8n workflows | ⬜ |

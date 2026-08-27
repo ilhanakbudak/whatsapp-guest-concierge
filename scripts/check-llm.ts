@@ -17,7 +17,7 @@ import { ScheduleService } from "../src/calendar/schedule.js";
 import { loadConfig } from "../src/config/env.js";
 import { openDatabase } from "../src/db/index.js";
 import { createRepositories } from "../src/db/repositories/index.js";
-import { createKnowledgeBase } from "../src/knowledge/index.js";
+import { createKnowledgeService } from "../src/knowledge/index.js";
 import { createLogger } from "../src/lib/logger.js";
 import { normalizePhone } from "../src/lib/phone.js";
 
@@ -58,7 +58,7 @@ const schedule = new ScheduleService(createCalendarClient(config), {
 const handler = new ConciergeHandler({
   provider,
   schedule,
-  knowledgeBase: createKnowledgeBase(config),
+  knowledgeBase: createKnowledgeService(config, repos.knowledge, logger),
   conversations: repos.conversations,
   usage: repos.usage,
   logger,

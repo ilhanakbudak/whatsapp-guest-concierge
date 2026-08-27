@@ -205,6 +205,79 @@ generated relative to today, so it never goes stale. This works even with
 `DEMO_MODE=false`, which is how you test a real Twilio number before the Google
 project exists.
 
-## 4. Notion or Google Docs knowledge base
+## 4. Knowledge base
 
-_Arrives with the knowledge base providers._
+The bot answers house questions from a document your team maintains. Pick
+whichever tool the team already lives in — `KB_PROVIDER` decides.
+
+### Option A — Markdown files (default, no accounts)
+
+```bash
+KB_PROVIDER=local
+KB_LOCAL_PATH=./kb
+```
+
+Files are read in filename order, which is why the samples are numbered
+(`00-welcome.md`, `10-practical.md`, …). That numbering is how you control what
+the assistant reads first.
+
+### Option B — Notion
+
+1. Go to [notion.so/my-integrations](https://www.notion.so/my-integrations) →
+   **New integration**. Give it a name and copy the **Internal Integration Secret**.
+2. Open the page you want the bot to read → **⋯** menu → **Connections** →
+   add your integration. **Without this the page is invisible to the API**, even
+   with a valid key.
+3. Copy the page ID from its URL — the 32-character string after the title:
+   `notion.so/Villa-Handbook-`**`8a3f...`**
+
+```bash
+KB_PROVIDER=notion
+NOTION_API_KEY=ntn_...
+NOTION_PAGE_ID=8a3f...
+```
+
+Headings, paragraphs, bullet and numbered lists, to-dos, quotes, callouts,
+toggles, code blocks and tables are all converted to Markdown. Images and embeds
+are skipped — the bot cannot read a picture to a guest over WhatsApp.
+
+### Option C — Google Doc
+
+The same service account that reads the calendar reads the document, so there is
+nothing new to create.
+
+1. Enable the **Google Docs API** in the same Cloud project.
+2. Share the document with the service account email
+   (`villa-concierge@…iam.gserviceaccount.com`), Viewer is enough.
+3. Copy the document ID from its URL:
+   `docs.google.com/document/d/`**`1AbC...`**`/edit`
+
+```bash
+KB_PROVIDER=google-doc
+GOOGLE_DOC_ID=1AbC...
+```
+
+Heading styles become Markdown headings, so use Google Docs' built-in **Heading 1
+/ Heading 2** styles rather than just making text bold — that is what gives the
+assistant its structure.
+
+### Refreshing
+
+| How | When to use it |
+|---|---|
+| Automatic | Daily, per `KB_REFRESH_CRON` (default 04:00) |
+| `POST /admin/kb/refresh` | You corrected something and need it live now |
+| `GET /admin/kb` | Check what is loaded and when it last changed |
+
+Both admin endpoints need the header `Authorization: Bearer $ADMIN_API_TOKEN`.
+
+```bash
+curl -X POST https://your-app/admin/kb/refresh \
+  -H "Authorization: Bearer $ADMIN_API_TOKEN"
+```
+
+A refresh reports `changed: true` only when the content actually differs — the
+history is a record of edits, not of how often the job ran.
+
+If the source is unreachable, the bot keeps serving the last copy it stored
+rather than losing its house knowledge until the outage ends.

@@ -3,7 +3,7 @@ import { ConciergeHandler, FALLBACK_REPLY } from "../src/ai/handler.js";
 import { MockLlmProvider } from "../src/ai/providers/mock.js";
 import { MockCalendarClient } from "../src/calendar/mock.js";
 import { ScheduleService } from "../src/calendar/schedule.js";
-import { CachedKnowledgeBase } from "../src/knowledge/index.js";
+import { KnowledgeService } from "../src/knowledge/index.js";
 import type { KnowledgeBaseProvider } from "../src/knowledge/types.js";
 import { createLogger } from "../src/lib/logger.js";
 import { createTestDb, type TestContext } from "./helpers/db.js";
@@ -33,7 +33,11 @@ function build(provider: LlmProvider, kb = "WiFi password is turquoise-2026.") {
       timeZone: TZ,
       now: () => NOW,
     }),
-    knowledgeBase: new CachedKnowledgeBase(new StaticKb(kb)),
+    knowledgeBase: new KnowledgeService({
+      provider: new StaticKb(kb),
+      repository: ctx.repos.knowledge,
+      logger,
+    }),
     conversations: ctx.repos.conversations,
     usage: ctx.repos.usage,
     logger,
@@ -191,54 +195,5 @@ describe("ConciergeHandler", () => {
 
     const cacheable = provider.requests[0]!.system.filter((b) => b.cacheable);
     expect(cacheable.some((b) => b.text.includes("4417"))).toBe(true);
-  });
-});
-
-describe("CachedKnowledgeBase", () => {
-  it("reads once and serves the cached copy", async () => {
-    let reads = 0;
-    const kb = new CachedKnowledgeBase({
-      source: "t",
-      fetch: async () => {
-        reads++;
-        return { content: "x", hash: "h", fetchedAt: new Date() };
-      },
-    });
-
-    await kb.get();
-    await kb.get();
-    expect(reads).toBe(1);
-  });
-
-  it("collapses concurrent refreshes into one read", async () => {
-    let reads = 0;
-    const kb = new CachedKnowledgeBase({
-      source: "t",
-      fetch: async () => {
-        reads++;
-        await new Promise((r) => setTimeout(r, 5));
-        return { content: "x", hash: "h", fetchedAt: new Date() };
-      },
-    });
-
-    await Promise.all([kb.get(), kb.get(), kb.get()]);
-    expect(reads).toBe(1);
-  });
-
-  it("re-reads on explicit refresh", async () => {
-    let reads = 0;
-    const kb = new CachedKnowledgeBase({
-      source: "t",
-      fetch: async () => {
-        reads++;
-        return { content: `read-${reads}`, hash: "h", fetchedAt: new Date() };
-      },
-    });
-
-    await kb.get();
-    const refreshed = await kb.refresh();
-
-    expect(reads).toBe(2);
-    expect(refreshed.content).toBe("read-2");
   });
 });

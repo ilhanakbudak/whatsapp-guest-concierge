@@ -8,7 +8,8 @@ import { ConciergeHandler } from "./ai/handler.js";
 import { createLlmProvider } from "./ai/registry.js";
 import type { LlmProvider } from "./ai/types.js";
 import { createCalendarClient } from "./calendar/index.js";
-import { createKnowledgeBase, type CachedKnowledgeBase } from "./knowledge/index.js";
+import { createKnowledgeService, type KnowledgeService } from "./knowledge/index.js";
+import { scheduleKnowledgeRefresh, type ScheduledRefresh } from "./knowledge/schedule.js";
 import { ScheduleService } from "./calendar/schedule.js";
 import type { CalendarClient } from "./calendar/types.js";
 import { createWhatsAppClient } from "./whatsapp/index.js";
@@ -29,7 +30,7 @@ export interface AppContext {
   calendar: CalendarClient;
   schedule: ScheduleService;
   llm: LlmProvider;
-  knowledgeBase: CachedKnowledgeBase;
+  knowledgeBase: KnowledgeService;
   handler: MessageHandler;
   tasks: TaskRunner;
   rateLimiter: TokenBucketLimiter;
@@ -70,7 +71,12 @@ export function createContext(options: CreateContextOptions = {}): AppContext {
   const repos = createRepositories(db);
   const schedule = new ScheduleService(calendar, { timeZone: config.CALENDAR_TIMEZONE });
   const llm = options.llm ?? createLlmProvider(config);
-  const knowledgeBase = createKnowledgeBase(config);
+  const knowledgeBase = createKnowledgeService(config, repos.knowledge, logger);
+
+  // Not scheduled in tests: a live cron timer keeps the process alive.
+  const refreshJob: ScheduledRefresh | null = config.isTest
+    ? null
+    : scheduleKnowledgeRefresh(knowledgeBase, config.KB_REFRESH_CRON, logger);
 
   return {
     config,
@@ -103,6 +109,7 @@ export function createContext(options: CreateContextOptions = {}): AppContext {
       config.GUEST_RATE_LIMIT_PER_MINUTE,
     ),
     shutdown: async () => {
+      refreshJob?.stop();
       // Finish replies already in flight before closing the database under them.
       await tasks.drain();
       db.close();

@@ -2,6 +2,7 @@ import Fastify, { type FastifyBaseLogger } from "fastify";
 import formbody from "@fastify/formbody";
 import { createContext, type AppContext } from "./app.js";
 import { isAppError } from "./lib/errors.js";
+import { registerAdminRoutes } from "./routes/admin.js";
 import { registerWebhookRoutes } from "./routes/webhook.js";
 
 declare module "fastify" {
@@ -63,6 +64,7 @@ export async function buildServer(options: BuildServerOptions = {}) {
   });
 
   await registerWebhookRoutes(app);
+  await registerAdminRoutes(app);
 
   app.addHook("onClose", async () => context.shutdown());
 

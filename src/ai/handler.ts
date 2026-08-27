@@ -1,6 +1,6 @@
 import type { ScheduleService } from "../calendar/schedule.js";
 import type { ConversationsRepository, UsageRepository } from "../db/repositories/index.js";
-import type { CachedKnowledgeBase } from "../knowledge/index.js";
+import type { KnowledgeService } from "../knowledge/index.js";
 import type { Logger } from "../lib/logger.js";
 import type { IncomingMessage, MessageHandler } from "../whatsapp/handler.js";
 import { runConversation } from "./loop.js";
@@ -16,7 +16,7 @@ export const FALLBACK_REPLY =
 export interface ConciergeHandlerOptions {
   provider: LlmProvider;
   schedule: ScheduleService;
-  knowledgeBase: CachedKnowledgeBase;
+  knowledgeBase: KnowledgeService;
   conversations: ConversationsRepository;
   usage: UsageRepository;
   logger: Logger;
@@ -40,7 +40,7 @@ export class ConciergeHandler implements MessageHandler {
     const now = this.now();
 
     try {
-      const kb = await options.knowledgeBase.get();
+      const knowledgeBase = await options.knowledgeBase.getContent();
 
       const history = options.conversations.get(message.guest.id);
       const messages: LlmMessage[] = [
@@ -57,7 +57,7 @@ export class ConciergeHandler implements MessageHandler {
         provider: options.provider,
         system: buildSystemPrompt({
           guest: message.guest,
-          knowledgeBase: kb.content,
+          knowledgeBase,
           timeZone: options.timeZone,
           now,
         }),

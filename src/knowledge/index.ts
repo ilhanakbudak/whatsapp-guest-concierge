@@ -1,57 +1,49 @@
 import type { AppConfig } from "../config/env.js";
+import type { KnowledgeRepository } from "../db/repositories/knowledge.js";
+import type { Logger } from "../lib/logger.js";
+import { GoogleDocKnowledgeBase } from "./google-doc.js";
 import { LocalMarkdownKnowledgeBase } from "./local.js";
-import type { KnowledgeBaseProvider, KnowledgeBaseSnapshot } from "./types.js";
+import { NotionKnowledgeBase } from "./notion.js";
+import { KnowledgeService } from "./service.js";
+import type { KnowledgeBaseProvider } from "./types.js";
 
 /**
- * Caches the rendered knowledge base in memory.
- *
- * The content changes maybe once a week, so re-reading it per message would be
- * pure waste — and because it is the cacheable half of the system prompt, a
- * stable string is also what keeps the provider-side prompt cache warm.
+ * Swapping the source the team maintains is a config change: `KB_PROVIDER`
+ * plus that provider's credentials. Nothing downstream of this function knows
+ * or cares where the handbook came from.
  */
-export class CachedKnowledgeBase {
-  private snapshot: KnowledgeBaseSnapshot | null = null;
-  private inFlight: Promise<KnowledgeBaseSnapshot> | null = null;
-
-  constructor(
-    private readonly provider: KnowledgeBaseProvider,
-    private readonly ttlMs = 24 * 60 * 60 * 1000,
-    private readonly now: () => number = Date.now,
-  ) {}
-
-  async get(): Promise<KnowledgeBaseSnapshot> {
-    if (this.snapshot && this.now() - this.snapshot.fetchedAt.getTime() < this.ttlMs) {
-      return this.snapshot;
-    }
-    return this.refresh();
-  }
-
-  /** Forces a re-read. Backs the daily job, the dashboard button and `!refresh`. */
-  async refresh(): Promise<KnowledgeBaseSnapshot> {
-    // Collapse concurrent refreshes so a burst of messages triggers one read.
-    this.inFlight ??= this.provider
-      .fetch()
-      .then((snapshot) => {
-        this.snapshot = snapshot;
-        return snapshot;
-      })
-      .finally(() => {
-        this.inFlight = null;
+export function createKnowledgeProvider(config: AppConfig): KnowledgeBaseProvider {
+  switch (config.KB_PROVIDER) {
+    case "notion":
+      return new NotionKnowledgeBase({
+        apiKey: config.NOTION_API_KEY!,
+        pageId: config.NOTION_PAGE_ID!,
       });
 
-    return this.inFlight;
-  }
+    case "google-doc":
+      return new GoogleDocKnowledgeBase({
+        documentId: config.GOOGLE_DOC_ID!,
+        serviceAccountFile: config.GOOGLE_SERVICE_ACCOUNT_FILE,
+        serviceAccountJson: config.GOOGLE_SERVICE_ACCOUNT_JSON,
+      });
 
-  get current(): KnowledgeBaseSnapshot | null {
-    return this.snapshot;
+    case "local":
+      return new LocalMarkdownKnowledgeBase(config.KB_LOCAL_PATH);
   }
 }
 
-export function createKnowledgeBase(config: AppConfig): CachedKnowledgeBase {
-  // Notion and Google Docs providers land with the knowledge-base phase; local
-  // Markdown is the default and needs no credentials.
-  return new CachedKnowledgeBase(new LocalMarkdownKnowledgeBase(config.KB_LOCAL_PATH));
+export function createKnowledgeService(
+  config: AppConfig,
+  repository: KnowledgeRepository,
+  logger: Logger,
+): KnowledgeService {
+  return new KnowledgeService({
+    provider: createKnowledgeProvider(config),
+    repository,
+    logger,
+  });
 }
 
-export { LocalMarkdownKnowledgeBase };
+export { GoogleDocKnowledgeBase, KnowledgeService, LocalMarkdownKnowledgeBase, NotionKnowledgeBase };
 export * from "./types.js";
+export type { RefreshResult } from "./service.js";
