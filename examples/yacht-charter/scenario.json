@@ -1,0 +1,107 @@
+{
+  "name": "Yacht charter week",
+  "summary": "Eight guests sailing the Cyclades. Timings move with the wind, which is exactly why a live calendar matters.",
+  "timezone": "Europe/Athens",
+  "guests": [
+    {
+      "phone": "+447700900301",
+      "name": "Ingrid Solberg",
+      "role": "guest",
+      "notes": "Seasickness — has patches"
+    },
+    {
+      "phone": "+447700900302",
+      "name": "Callum Reid",
+      "role": "guest"
+    },
+    {
+      "phone": "+447700900303",
+      "name": "Noor Haddad",
+      "role": "guest",
+      "notes": "No shellfish"
+    },
+    {
+      "phone": "+447700900304",
+      "name": "Pieter de Vries",
+      "role": "guest"
+    },
+    {
+      "phone": "+447700900310",
+      "name": "Skipper Yiannis",
+      "role": "admin",
+      "notes": "Skipper — sets the schedule"
+    }
+  ],
+  "itinerary": [
+    {
+      "dayOffset": 0,
+      "start": "16:00",
+      "title": "Board at Alimos Marina",
+      "location": "Pier 6, berth 42",
+      "description": "Bring soft bags only — there is nowhere to store a hard suitcase."
+    },
+    {
+      "dayOffset": 0,
+      "start": "17:30",
+      "title": "Safety briefing",
+      "location": "On deck",
+      "description": "Everyone, no exceptions."
+    },
+    {
+      "dayOffset": 0,
+      "start": "19:30",
+      "title": "Dinner ashore",
+      "location": "Alimos"
+    },
+    {
+      "dayOffset": 1,
+      "start": "08:30",
+      "title": "Slip lines for Kea",
+      "location": "Alimos Marina",
+      "description": "Roughly 6 hours. Timings depend on wind — check with this number on the morning."
+    },
+    {
+      "dayOffset": 1,
+      "start": "15:00",
+      "title": "Anchor at Vourkari",
+      "location": "Kea"
+    },
+    {
+      "dayOffset": 1,
+      "start": "20:00",
+      "title": "Dinner at the taverna",
+      "location": "Vourkari waterfront"
+    },
+    {
+      "dayOffset": 2,
+      "start": "09:00",
+      "title": "Passage to Kythnos",
+      "location": "At sea"
+    },
+    {
+      "dayOffset": 2,
+      "start": "14:00",
+      "end": "18:00",
+      "title": "Swimming stop at Kolona beach",
+      "location": "Kythnos"
+    },
+    {
+      "dayOffset": 3,
+      "title": "Weather day — plans may change",
+      "description": "The skipper decides in the morning. Ask this number rather than assuming."
+    },
+    {
+      "dayOffset": 4,
+      "start": "10:00",
+      "title": "Passage back to Alimos",
+      "location": "At sea"
+    },
+    {
+      "dayOffset": 5,
+      "start": "09:00",
+      "title": "Disembark",
+      "location": "Alimos Marina",
+      "description": "Cabins cleared by 09:00."
+    }
+  ]
+}

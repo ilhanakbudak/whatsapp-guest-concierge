@@ -1,0 +1,115 @@
+{
+  "name": "Catered ski chalet",
+  "summary": "A chalet week where the questions are lift passes, snow and what time the minibus leaves.",
+  "timezone": "Europe/Zurich",
+  "guests": [
+    {
+      "phone": "+447700900401",
+      "name": "Hugo Lindqvist",
+      "role": "guest"
+    },
+    {
+      "phone": "+447700900402",
+      "name": "Fenella Brooks",
+      "role": "guest",
+      "notes": "Beginner — lessons booked"
+    },
+    {
+      "phone": "+447700900403",
+      "name": "Diego Salas",
+      "role": "guest",
+      "notes": "Nut allergy, carries an EpiPen"
+    },
+    {
+      "phone": "+447700900404",
+      "name": "Mei Tanaka",
+      "role": "guest"
+    },
+    {
+      "phone": "+447700900410",
+      "name": "Chalet host Ana",
+      "role": "admin",
+      "notes": "Chalet host"
+    }
+  ],
+  "itinerary": [
+    {
+      "dayOffset": 0,
+      "start": "16:00",
+      "title": "Chalet check-in",
+      "location": "Chalet Edelweiss",
+      "description": "Boot room is on the lower floor. Ski boots never go upstairs."
+    },
+    {
+      "dayOffset": 0,
+      "start": "17:00",
+      "end": "18:00",
+      "title": "Kit fitting",
+      "location": "Sport Bruggmann, village centre"
+    },
+    {
+      "dayOffset": 0,
+      "start": "19:30",
+      "title": "Welcome dinner",
+      "location": "Chalet dining room"
+    },
+    {
+      "dayOffset": 1,
+      "start": "07:45",
+      "end": "09:00",
+      "title": "Breakfast",
+      "location": "Chalet dining room"
+    },
+    {
+      "dayOffset": 1,
+      "start": "09:15",
+      "title": "Minibus to the gondola",
+      "location": "Chalet front",
+      "description": "Leaves promptly. The next run is 09:45."
+    },
+    {
+      "dayOffset": 1,
+      "start": "10:00",
+      "end": "12:00",
+      "title": "Beginner lesson — Fenella",
+      "location": "Meeting point by the nursery slope"
+    },
+    {
+      "dayOffset": 1,
+      "start": "16:30",
+      "title": "Afternoon tea",
+      "location": "Chalet"
+    },
+    {
+      "dayOffset": 1,
+      "start": "19:30",
+      "title": "Dinner",
+      "location": "Chalet dining room"
+    },
+    {
+      "dayOffset": 2,
+      "start": "09:15",
+      "title": "Minibus to the gondola",
+      "location": "Chalet front"
+    },
+    {
+      "dayOffset": 2,
+      "start": "12:30",
+      "title": "Lunch at the mountain restaurant",
+      "location": "Alpstubli, mid-station",
+      "description": "Booked under the chalet name."
+    },
+    {
+      "dayOffset": 3,
+      "title": "Chalet host's day off",
+      "description": "Breakfast is laid out cold. No dinner served — the village restaurants are in the house information."
+    },
+    {
+      "dayOffset": 5,
+      "start": "09:00",
+      "title": "Rooms vacated, transfer to Zurich",
+      "location": "Chalet front",
+      "description": "Bags down by 08:45."
+    }
+  ]
+}

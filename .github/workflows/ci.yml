@@ -7,6 +7,7 @@ on:
 
 jobs:
   check:
+    name: Typecheck, lint, test
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -20,3 +21,86 @@ jobs:
       - run: npm test
       - run: npm run build
       - run: npm run smoke
+
+  docker:
+    name: Docker image
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: docker/setup-buildx-action@v3
+
+      # Built here rather than on a developer's machine: Docker Desktop is a
+      # multi-gigabyte install, and a Dockerfile verified once locally goes stale
+      # the moment someone edits it. This runs on every push.
+      - name: Build image
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          load: true
+          tags: concierge:ci
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - name: Start container
+        run: |
+          docker run -d --name concierge \
+            -p 3000:3000 \
+            -e DEMO_MODE=true \
+            -e LOG_LEVEL=warn \
+            concierge:ci
+
+      - name: Wait for readiness
+        run: |
+          for i in $(seq 1 40); do
+            if curl -fsS http://localhost:3000/health/ready > /tmp/ready.json; then
+              echo "ready after ${i} attempt(s)"; cat /tmp/ready.json; exit 0
+            fi
+            sleep 1
+          done
+          echo "::error::container never became ready"
+          docker logs concierge
+          exit 1
+
+      # The image is only useful if the security properties survived the build.
+      - name: Verify the container runs unprivileged
+        run: |
+          user=$(docker exec concierge whoami)
+          echo "running as: $user"
+          [ "$user" = "node" ] || { echo "::error::container runs as $user, expected node"; exit 1; }
+
+      - name: Verify the webhook still rejects unsigned requests
+        run: |
+          code=$(curl -s -o /dev/null -w "%{http_code}" -X POST \
+            http://localhost:3000/webhooks/twilio/inbound \
+            -H "content-type: application/x-www-form-urlencoded" \
+            --data "From=whatsapp:%2B447700900123&Body=hi&MessageSid=SM1")
+          echo "unsigned webhook -> HTTP $code"
+          [ "$code" = "403" ] || { echo "::error::expected 403, got $code"; exit 1; }
+
+      - name: Verify the admin API is protected
+        run: |
+          code=$(curl -s -o /dev/null -w "%{http_code}" http://localhost:3000/admin/kb)
+          echo "unauthenticated admin -> HTTP $code"
+          [ "$code" = "401" ] || { echo "::error::expected 401, got $code"; exit 1; }
+
+      - name: Verify no secrets were baked into the image
+        run: |
+          if docker run --rm --entrypoint sh concierge:ci -c 'ls -a /app' | grep -qE '^\.env$|^secrets$'; then
+            echo "::error::the image contains .env or secrets/"
+            exit 1
+          fi
+          echo "no credential files in the image"
+
+      - name: Report image size
+        run: |
+          bytes=$(docker image inspect concierge:ci --format '{{.Size}}')
+          echo "image size: $((bytes / 1024 / 1024)) MB"
+
+      - name: Container logs
+        if: always()
+        run: docker logs concierge || true
+
+      - name: Stop container
+        if: always()
+        run: docker rm -f concierge || true

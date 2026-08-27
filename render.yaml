@@ -1,0 +1,54 @@
+services:
+  - type: web
+    name: whatsapp-guest-concierge
+    runtime: docker
+    dockerfilePath: ./Dockerfile
+    plan: starter
+    healthCheckPath: /health/ready
+
+    # SQLite is the whole application state. Without a disk it is recreated
+    # empty on every deploy, taking the guest list with it.
+    disk:
+      name: concierge-data
+      mountPath: /data
+      sizeGB: 1
+
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: DATABASE_PATH
+        value: /data/concierge.db
+      - key: DEMO_MODE
+        value: "false"
+
+      # Must exactly match the webhook URL configured in Twilio — signature
+      # validation rebuilds this URL. Set it once the service has a domain.
+      - key: PUBLIC_URL
+        sync: false
+
+      - key: ADMIN_API_TOKEN
+        generateValue: true
+
+      - key: LLM_PROVIDER
+        value: anthropic
+      - key: ANTHROPIC_API_KEY
+        sync: false
+
+      - key: TWILIO_ACCOUNT_SID
+        sync: false
+      - key: TWILIO_AUTH_TOKEN
+        sync: false
+      - key: TWILIO_WHATSAPP_FROM
+        sync: false
+
+      - key: GOOGLE_CALENDAR_ID
+        sync: false
+      # Paste the whole service-account JSON — Render has no filesystem to
+      # upload a key file to. Escaped newlines in the private key are handled.
+      - key: GOOGLE_SERVICE_ACCOUNT_JSON
+        sync: false
+      - key: CALENDAR_TIMEZONE
+        value: Europe/Istanbul
+
+      - key: KB_PROVIDER
+        value: local

@@ -1,0 +1,118 @@
+{
+  "name": "Private villa holiday",
+  "summary": "A group of friends sharing a villa on the Turkish coast for a week. The original brief.",
+  "timezone": "Europe/Istanbul",
+  "guests": [
+    {
+      "phone": "+447700900001",
+      "name": "Priya Patel",
+      "role": "guest",
+      "notes": "Vegetarian"
+    },
+    {
+      "phone": "+447700900002",
+      "name": "Tom Okafor",
+      "role": "guest"
+    },
+    {
+      "phone": "+447700900003",
+      "name": "Elena Rossi",
+      "role": "guest",
+      "notes": "Shellfish allergy"
+    },
+    {
+      "phone": "+447700900004",
+      "name": "Marcus Bell",
+      "role": "guest"
+    },
+    {
+      "phone": "+447700900005",
+      "name": "Yuki Tanaka",
+      "role": "guest",
+      "notes": "Arrives Thursday"
+    },
+    {
+      "phone": "+447700900010",
+      "name": "Sofia Marsh",
+      "role": "admin",
+      "notes": "Guest liaison / PA"
+    }
+  ],
+  "itinerary": [
+    {
+      "dayOffset": 0,
+      "start": "08:30",
+      "end": "10:30",
+      "title": "Breakfast on the terrace",
+      "location": "Main terrace"
+    },
+    {
+      "dayOffset": 0,
+      "start": "14:00",
+      "end": "18:00",
+      "title": "Boat trip to the blue caves",
+      "location": "South jetty",
+      "description": "Bring swimwear, a towel and sun cream. Departs promptly."
+    },
+    {
+      "dayOffset": 0,
+      "start": "20:30",
+      "title": "Dinner at Meze Bahçe",
+      "location": "Kalkan old town",
+      "description": "Smart casual. Taxis leave from the front gate at 20:00."
+    },
+    {
+      "dayOffset": 1,
+      "title": "Dress code: whites",
+      "description": "For the evening party only."
+    },
+    {
+      "dayOffset": 1,
+      "start": "09:00",
+      "end": "10:00",
+      "title": "Yoga by the pool",
+      "location": "Lower pool deck"
+    },
+    {
+      "dayOffset": 1,
+      "start": "13:00",
+      "end": "15:00",
+      "title": "Lunch at the villa",
+      "location": "Main terrace"
+    },
+    {
+      "dayOffset": 1,
+      "start": "19:30",
+      "title": "White party",
+      "location": "Upper terrace",
+      "description": "Welcome drinks at 19:30, dinner served at 21:00."
+    },
+    {
+      "dayOffset": 2,
+      "start": "10:00",
+      "end": "13:00",
+      "title": "Kayaking at Kaputaş",
+      "location": "Kaputaş beach"
+    },
+    {
+      "dayOffset": 2,
+      "start": "20:00",
+      "title": "Barbecue by the pool",
+      "location": "Lower pool deck"
+    },
+    {
+      "dayOffset": 3,
+      "start": "11:00",
+      "end": "16:00",
+      "title": "Free day",
+      "description": "No planned activities."
+    },
+    {
+      "dayOffset": 4,
+      "start": "07:00",
+      "title": "Airport transfers begin",
+      "location": "Front gate",
+      "description": "Check the group chat for your assigned car."
+    }
+  ]
+}

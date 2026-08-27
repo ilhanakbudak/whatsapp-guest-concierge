@@ -1,0 +1,173 @@
+{
+  "name": "Concierge — daily knowledge base refresh",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "cronExpression",
+              "expression": "0 4 * * *"
+            }
+          ]
+        }
+      },
+      "id": "every-morning-at-04:00",
+      "name": "Every morning at 04:00",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        -220,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $env.CONCIERGE_URL }}/admin/kb/refresh",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "=Bearer {{ $env.ADMIN_API_TOKEN }}"
+            }
+          ]
+        },
+        "options": {
+          "timeout": 30000,
+          "response": {
+            "response": {
+              "neverError": true,
+              "fullResponse": true
+            }
+          }
+        }
+      },
+      "id": "refresh-knowledge-base",
+      "name": "Refresh knowledge base",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        40,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "changed",
+              "leftValue": "={{ $json.body.changed }}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        }
+      },
+      "id": "did-the-content-change?",
+      "name": "Did the content change?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        300,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "select": "channel",
+        "channelId": {
+          "__rl": true,
+          "value": "#villa-ops",
+          "mode": "name"
+        },
+        "text": "=House information updated — {{ $json.body.characters }} characters loaded (version {{ $json.body.hash }}).",
+        "otherOptions": {}
+      },
+      "id": "notify-the-team",
+      "name": "Notify the team",
+      "type": "n8n-nodes-base.slack",
+      "typeVersion": 2.2,
+      "position": [
+        560,
+        200
+      ]
+    },
+    {
+      "parameters": {},
+      "id": "no-change-—-do-nothing",
+      "name": "No change — do nothing",
+      "type": "n8n-nodes-base.noOp",
+      "typeVersion": 1,
+      "position": [
+        560,
+        400
+      ]
+    }
+  ],
+  "connections": {
+    "Every morning at 04:00": {
+      "main": [
+        [
+          {
+            "node": "Refresh knowledge base",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Refresh knowledge base": {
+      "main": [
+        [
+          {
+            "node": "Did the content change?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Did the content change?": {
+      "main": [
+        [
+          {
+            "node": "Notify the team",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "No change — do nothing",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "pinData": {},
+  "meta": {
+    "instanceId": "whatsapp-guest-concierge"
+  },
+  "tags": [
+    {
+      "name": "concierge"
+    }
+  ]
+}

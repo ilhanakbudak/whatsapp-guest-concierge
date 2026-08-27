@@ -1,0 +1,190 @@
+{
+  "name": "Concierge — morning delivery digest",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "cronExpression",
+              "expression": "0 8 * * *"
+            }
+          ]
+        }
+      },
+      "id": "every-morning-at-08:00",
+      "name": "Every morning at 08:00",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        -220,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "={{ $env.CONCIERGE_URL }}/admin/broadcasts",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "=Bearer {{ $env.ADMIN_API_TOKEN }}"
+            }
+          ]
+        },
+        "options": {
+          "timeout": 30000
+        }
+      },
+      "id": "fetch-recent-broadcasts",
+      "name": "Fetch recent broadcasts",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        40,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Only yesterday's announcements, and only the ones worth reporting.\nconst since = Date.now() - 24 * 60 * 60 * 1000;\nconst recent = $input.all()\n  .map((item) => item.json)\n  .filter((b) => new Date(String(b.createdAt).replace(' ', 'T') + 'Z').getTime() >= since);\n\nlet sent = 0, delivered = 0, failed = 0;\nfor (const b of recent) {\n  const c = b.counts ?? {};\n  sent += c.sent ?? 0;\n  delivered += (c.delivered ?? 0) + (c.read ?? 0);\n  failed += (c.failed ?? 0) + (c.undelivered ?? 0);\n}\n\nreturn [{ json: {\n  announcements: recent.length,\n  sent, delivered, failed,\n  // A failure is the only thing worth waking anyone for.\n  needsAttention: failed > 0,\n} }];"
+      },
+      "id": "summarise-the-last-24-hours",
+      "name": "Summarise the last 24 hours",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        300,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "any",
+              "leftValue": "={{ $json.announcements }}",
+              "rightValue": 0,
+              "operator": {
+                "type": "number",
+                "operation": "gt"
+              }
+            }
+          ],
+          "combinator": "and"
+        }
+      },
+      "id": "anything-to-report?",
+      "name": "Anything to report?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        560,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "select": "channel",
+        "channelId": {
+          "__rl": true,
+          "value": "#villa-ops",
+          "mode": "name"
+        },
+        "text": "={{ $json.needsAttention ? ':warning:' : ':white_check_mark:' }} Yesterday: {{ $json.announcements }} announcement(s), {{ $json.delivered }} delivered, {{ $json.sent }} accepted, {{ $json.failed }} failed.{{ $json.failed > 0 ? ' Check the dashboard — a failure is usually a guest outside the 24-hour window.' : '' }}",
+        "otherOptions": {}
+      },
+      "id": "post-the-digest",
+      "name": "Post the digest",
+      "type": "n8n-nodes-base.slack",
+      "typeVersion": 2.2,
+      "position": [
+        820,
+        200
+      ]
+    },
+    {
+      "parameters": {},
+      "id": "quiet-day-—-say-nothing",
+      "name": "Quiet day — say nothing",
+      "type": "n8n-nodes-base.noOp",
+      "typeVersion": 1,
+      "position": [
+        820,
+        400
+      ]
+    }
+  ],
+  "connections": {
+    "Every morning at 08:00": {
+      "main": [
+        [
+          {
+            "node": "Fetch recent broadcasts",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Fetch recent broadcasts": {
+      "main": [
+        [
+          {
+            "node": "Summarise the last 24 hours",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Summarise the last 24 hours": {
+      "main": [
+        [
+          {
+            "node": "Anything to report?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Anything to report?": {
+      "main": [
+        [
+          {
+            "node": "Post the digest",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Quiet day — say nothing",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "pinData": {},
+  "meta": {
+    "instanceId": "whatsapp-guest-concierge"
+  },
+  "tags": [
+    {
+      "name": "concierge"
+    }
+  ]
+}

@@ -2,10 +2,39 @@
 
 One Node process and one SQLite file. No database server, no queue, no Redis.
 
-> **Status:** the platform config files (`Dockerfile`, `railway.json`,
-> `render.yaml`) land with the deployment phase. Everything below works today.
+Deploy it as a container, or let the platform build it natively — both work.
+`Dockerfile`, `railway.json` and `render.yaml` are in the repository.
 
 ---
+
+## Docker
+
+```bash
+docker build -t concierge .
+docker run -p 3000:3000 -e DEMO_MODE=true -v concierge-data:/data concierge
+```
+
+Multi-stage, so TypeScript sources and dev dependencies never reach the published
+image. It runs as the unprivileged `node` user, uses `tini` as PID 1 so `SIGTERM`
+reaches Node and the graceful shutdown path actually drains in-flight replies, and
+its `HEALTHCHECK` hits `/health/ready` rather than `/health` — a liveness-only
+check would report healthy with an unreachable database.
+
+**The image is built and exercised in CI on every push**, not verified once on a
+developer's machine and left to rot. The `docker` job builds it, boots it, and
+asserts that it becomes ready, runs unprivileged, still rejects unsigned webhooks
+with a 403, still returns 401 on the admin API, and contains no `.env` or
+`secrets/`.
+
+> You do not need Docker locally to work on this repository. CI is the
+> verification.
+
+### Without Docker
+
+Both target platforms detect Node and build natively — Railway via Nixpacks,
+Render via its Node runtime. Delete `dockerfilePath` from `railway.json` or set
+`runtime: node` in `render.yaml` and the same `npm ci && npm run build && npm start`
+applies.
 
 ## Requirements
 

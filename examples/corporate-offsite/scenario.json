@@ -1,0 +1,114 @@
+{
+  "name": "Company offsite",
+  "summary": "Forty employees at a three-day strategy offsite. Replaces the ops channel nobody reads.",
+  "timezone": "Europe/Lisbon",
+  "guests": [
+    {
+      "phone": "+447700900201",
+      "name": "Dele Adeyemi",
+      "role": "guest"
+    },
+    {
+      "phone": "+447700900202",
+      "name": "Kirsten Haugen",
+      "role": "guest",
+      "notes": "Vegan"
+    },
+    {
+      "phone": "+447700900203",
+      "name": "Marco Ferretti",
+      "role": "guest"
+    },
+    {
+      "phone": "+447700900204",
+      "name": "Aisha Karim",
+      "role": "guest",
+      "notes": "Leaving after lunch on day 3"
+    },
+    {
+      "phone": "+447700900210",
+      "name": "Ops team",
+      "role": "admin",
+      "notes": "Shared operations phone"
+    }
+  ],
+  "itinerary": [
+    {
+      "dayOffset": 0,
+      "start": "12:00",
+      "end": "14:00",
+      "title": "Arrivals and lunch",
+      "location": "Hotel terrace"
+    },
+    {
+      "dayOffset": 0,
+      "start": "14:30",
+      "end": "17:30",
+      "title": "Opening session: the year ahead",
+      "location": "Atlantic room",
+      "description": "Laptops not needed."
+    },
+    {
+      "dayOffset": 0,
+      "start": "19:30",
+      "title": "Dinner",
+      "location": "Cais do Sodré, tables booked under the company name"
+    },
+    {
+      "dayOffset": 1,
+      "start": "08:00",
+      "end": "09:15",
+      "title": "Breakfast",
+      "location": "Hotel restaurant"
+    },
+    {
+      "dayOffset": 1,
+      "start": "09:30",
+      "end": "12:30",
+      "title": "Product workshops",
+      "location": "Atlantic and Douro rooms",
+      "description": "Groups are on the board outside the Atlantic room."
+    },
+    {
+      "dayOffset": 1,
+      "start": "12:30",
+      "end": "13:30",
+      "title": "Lunch",
+      "location": "Hotel terrace"
+    },
+    {
+      "dayOffset": 1,
+      "start": "14:00",
+      "end": "17:00",
+      "title": "Breakouts and readouts",
+      "location": "Atlantic room"
+    },
+    {
+      "dayOffset": 1,
+      "start": "19:00",
+      "title": "Team dinner and quiz",
+      "location": "Hotel private room"
+    },
+    {
+      "dayOffset": 2,
+      "start": "09:00",
+      "end": "11:00",
+      "title": "Closing session and commitments",
+      "location": "Atlantic room"
+    },
+    {
+      "dayOffset": 2,
+      "start": "11:00",
+      "end": "12:00",
+      "title": "Checkout",
+      "location": "Hotel reception"
+    },
+    {
+      "dayOffset": 2,
+      "start": "12:00",
+      "title": "Airport transfers depart",
+      "location": "Hotel front",
+      "description": "Two coaches, 12:00 and 15:00. Reply to this number to change yours."
+    }
+  ]
+}

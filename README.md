@@ -40,6 +40,7 @@
 - [How a message is answered](#how-a-message-is-answered)
 - [Broadcasts](#broadcasts)
 - [Data model](#data-model)
+- [One product, many trips](#one-product-many-trips)
 - [Quickstart](#quickstart)
 - [Configuration](#configuration)
 - [Admin surface](#admin-surface)
@@ -105,6 +106,36 @@ concurrency, exponential backoff and delivery receipts fed back from Twilio's
 status webhook. Restart the process mid-broadcast and it resumes where it stopped.
 
 ---
+
+## One product, many trips
+
+Nothing in the code is about villas. A trip is **a guest list, a calendar, and a
+document of house information** — so the same build serves a wedding weekend, a
+company offsite, a yacht charter or a ski chalet with no code changes at all.
+
+```bash
+npm run seed -- --list
+npm run seed -- --scenario ski-chalet
+```
+
+Five worked scenarios ship in [`examples/`](examples/). Loading the ski chalet and
+asking the same bot, unedited:
+
+> **can I keep my ski boots in my room?**
+> Ski boots can't be kept upstairs in the rooms, as they can permanently mark the
+> soft-wood floors. Please leave them in the heated boot room downstairs, on the
+> pegs rather than the floor.
+
+> **who's cooking dinner on Ana's day off?**
+> No one — the chalet doesn't serve dinner on Ana's day off. Breakfast is laid out
+> cold, and you can eat at a village restaurant such as Zur Mühle, La Ferme or
+> Pizzeria Boccalino.
+
+That last answer is not written down anywhere. The calendar marks a day as *"host's
+day off — no dinner served"* and the knowledge base lists village restaurants; the
+assistant joined them. Each scenario also stresses a different part of the system —
+the yacht charter exists because its timings genuinely move with the wind, which is
+the case the live calendar lookup was built for.
 
 ## Architecture
 
@@ -509,12 +540,21 @@ from a CJS dependency can pass every test and still crash on start.
 
 ## Deployment
 
-Designed for Railway or Render: one process, one SQLite file, no external
-services required.
+One process, one SQLite file, no external services required.
 
 ```bash
-npm run build && npm start
+npm run build && npm start          # or
+docker build -t concierge . && docker run -p 3000:3000 concierge
 ```
+
+The image is multi-stage, runs unprivileged, and uses `tini` so `SIGTERM` reaches
+Node and in-flight replies drain before exit. **CI builds and exercises it on
+every push** — boots the container and asserts it becomes ready, runs as `node`,
+still rejects unsigned webhooks, still returns 401 on the admin API, and contains
+no credentials. You do not need Docker installed to work on this repository.
+
+`railway.json` and `render.yaml` are included; both platforms will also build it
+natively without a Dockerfile.
 
 `GET /health` for liveness, `GET /health/ready` for readiness. Full walkthrough in
 **[docs/DEPLOYMENT.md](docs/DEPLOYMENT.md)**.
@@ -545,7 +585,7 @@ retired. `LLM_MODEL=claude-sonnet-5` is the current Sonnet-class equivalent.
 | Knowledge base: Markdown, Notion, Google Doc | ✅ |
 | Broadcast queue + delivery tracking | ✅ |
 | Admin dashboard + WhatsApp commands | ✅ |
-| Docker, deploy config, n8n workflows | 🚧 |
+| Docker, deploy config, n8n workflows | ✅ |
 
 ## Documentation
 

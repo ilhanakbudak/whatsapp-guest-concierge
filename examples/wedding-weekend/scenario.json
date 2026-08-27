@@ -1,0 +1,120 @@
+{
+  "name": "Wedding weekend",
+  "summary": "Ninety guests at a country house over three days. The couple stop answering the same six questions.",
+  "timezone": "Europe/London",
+  "guests": [
+    {
+      "phone": "+447700900101",
+      "name": "Amara Bello",
+      "role": "guest",
+      "notes": "Coeliac"
+    },
+    {
+      "phone": "+447700900102",
+      "name": "James Whitfield",
+      "role": "guest"
+    },
+    {
+      "phone": "+447700900103",
+      "name": "Sinead Doyle",
+      "role": "guest",
+      "notes": "Bringing a plus-one"
+    },
+    {
+      "phone": "+447700900104",
+      "name": "Rahul Menon",
+      "role": "guest"
+    },
+    {
+      "phone": "+447700900105",
+      "name": "Beatrice Lang",
+      "role": "guest",
+      "notes": "Arriving Saturday morning"
+    },
+    {
+      "phone": "+447700900110",
+      "name": "Nadia Frost",
+      "role": "admin",
+      "notes": "Wedding planner"
+    }
+  ],
+  "itinerary": [
+    {
+      "dayOffset": 0,
+      "start": "16:00",
+      "end": "18:00",
+      "title": "Arrivals and room check-in",
+      "location": "Main house reception"
+    },
+    {
+      "dayOffset": 0,
+      "start": "19:00",
+      "title": "Welcome drinks",
+      "location": "The orangery",
+      "description": "Smart casual. Drinks on arrival, canapés from 19:30."
+    },
+    {
+      "dayOffset": 0,
+      "start": "20:30",
+      "title": "Informal supper",
+      "location": "Long barn"
+    },
+    {
+      "dayOffset": 1,
+      "title": "Dress code: morning suits and day dresses"
+    },
+    {
+      "dayOffset": 1,
+      "start": "09:00",
+      "end": "10:30",
+      "title": "Breakfast",
+      "location": "Long barn"
+    },
+    {
+      "dayOffset": 1,
+      "start": "13:00",
+      "title": "Guests seated for the ceremony",
+      "location": "Chapel lawn",
+      "description": "Please be seated by 13:15. The ceremony starts at 13:30 exactly."
+    },
+    {
+      "dayOffset": 1,
+      "start": "14:15",
+      "end": "16:00",
+      "title": "Drinks reception and photographs",
+      "location": "South terrace"
+    },
+    {
+      "dayOffset": 1,
+      "start": "16:30",
+      "title": "Wedding breakfast",
+      "location": "Great hall",
+      "description": "Seating plan is on the board by the entrance."
+    },
+    {
+      "dayOffset": 1,
+      "start": "20:00",
+      "title": "First dance and evening reception",
+      "location": "Great hall"
+    },
+    {
+      "dayOffset": 1,
+      "start": "23:30",
+      "title": "Last coach to the village hotels",
+      "location": "Front drive"
+    },
+    {
+      "dayOffset": 2,
+      "start": "09:30",
+      "end": "11:30",
+      "title": "Farewell brunch",
+      "location": "Long barn"
+    },
+    {
+      "dayOffset": 2,
+      "start": "11:00",
+      "title": "Rooms to be vacated",
+      "location": "Main house"
+    }
+  ]
+}
