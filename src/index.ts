@@ -1,6 +1,18 @@
 import { buildServer } from "./server.js";
 
-const port = Number(process.env.PORT ?? 3000);
-
 const server = await buildServer();
-await server.listen({ port, host: "0.0.0.0" });
+const { config, logger } = server.context;
+
+for (const signal of ["SIGINT", "SIGTERM"] as const) {
+  process.on(signal, () => {
+    logger.info({ signal }, "shutting down");
+    void server.close().then(() => process.exit(0));
+  });
+}
+
+try {
+  await server.listen({ port: config.PORT, host: "0.0.0.0" });
+} catch (err) {
+  logger.error({ err }, "failed to start");
+  process.exit(1);
+}
