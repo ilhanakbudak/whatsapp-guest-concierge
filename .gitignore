@@ -1,0 +1,48 @@
+# Internal working notes — never published
+.project/
+
+# Environment & secrets
+.env
+.env.*
+!.env.example
+*.pem
+*-service-account.json
+google-credentials.json
+
+# Data
+data/
+*.db
+*.db-journal
+*.sqlite
+*.sqlite3
+
+# Build output
+dist/
+build/
+*.tsbuildinfo
+
+# Dependencies
+node_modules/
+.pnp
+.pnp.js
+
+# Test & coverage
+coverage/
+.nyc_output/
+
+# Logs
+logs/
+*.log
+npm-debug.log*
+yarn-error.log*
+
+# Editor / OS
+.vscode/
+.idea/
+*.swp
+.DS_Store
+Thumbs.db
+
+# Tooling caches
+.eslintcache
+.cache/

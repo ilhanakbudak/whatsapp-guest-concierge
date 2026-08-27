@@ -1,0 +1,183 @@
+# WhatsApp Guest Concierge
+
+An AI concierge for private holiday groups. Guests message one WhatsApp number and
+get instant, accurate answers about the villa, the schedule, and the logistics —
+instead of texting the host forty times a day.
+
+Built on **Twilio WhatsApp**, the **Claude API**, and the **Google Calendar API**,
+with a durable broadcast system for pushing announcements to every guest at once.
+
+> 🚧 **Under active development.** Phase status is tracked below.
+
+---
+
+## Why this isn't a ChatGPT wrapper
+
+Three decisions do most of the work, and they're the reason this repo exists:
+
+**1. The calendar is a tool call, not prompt stuffing.**
+The obvious build dumps the next week of calendar events into the system prompt on
+every message. That's wrong twice: it's stale the moment the PA team moves the boat
+departure, and it burns tokens on the 90% of messages that are about WiFi
+passwords. Instead Claude gets a `get_schedule` tool and calls it only when a
+question is actually schedule-shaped — so the answer reflects a change made sixty
+seconds ago, and a "what's the wifi?" message never touches Google at all.
+
+**2. The knowledge base is a cache breakpoint.**
+The villa handbook is a few thousand near-static tokens sent on every single
+request. It sits first in the system prompt behind an explicit
+`cache_control` breakpoint, with volatile content (current time, guest name) placed
+strictly after it. The dashboard shows the live cache hit rate, because a silently
+broken prompt cache is invisible until the bill arrives.
+
+**3. Broadcasts are a queue, not a for-loop.**
+`await Promise.all(guests.map(send))` looks fine until Twilio rate-limits you
+halfway through and nobody can tell which of the twelve guests actually heard that
+the boat leaves in ninety minutes. Every broadcast writes one row per recipient and
+is drained by a worker with bounded concurrency, exponential backoff, and delivery
+receipts fed back from Twilio's status webhook. Restart the process mid-broadcast
+and it resumes without double-sending.
+
+---
+
+## Architecture
+
+```mermaid
+flowchart LR
+    G["Guest<br/>WhatsApp"] -->|inbound| TW[Twilio]
+    TW -->|"webhook<br/>(signature verified)"| API
+
+    subgraph API["Concierge Service (Fastify)"]
+        direction TB
+        AL["Guest allowlist<br/>+ rate limit"] --> AI
+        AI["Claude<br/>tool-use loop"]
+        AI <-->|"get_schedule()"| CAL
+        AI -.->|cached prefix| KB
+        BQ["Broadcast queue<br/>+ worker"]
+    end
+
+    CAL["Google<br/>Calendar API"]
+    KB["Knowledge base<br/>local · Notion · Google Doc"]
+
+    API -->|reply| TW --> G
+    ADMIN["Admin<br/>dashboard / WhatsApp"] --> BQ --> TW
+    TW -.->|status callbacks| BQ
+```
+
+Every external dependency sits behind an interface with a mock implementation, so
+the whole system runs with no credentials at all.
+
+---
+
+## Quickstart (no credentials needed)
+
+```bash
+git clone https://github.com/ilhanakbudak/whatsapp-guest-concierge
+cd whatsapp-guest-concierge
+npm install
+cp .env.example .env      # DEMO_MODE=true is already the default
+npm run seed              # loads a sample villa: guests, itinerary, handbook
+npm run dev
+```
+
+Then open:
+
+| URL | What it is |
+|---|---|
+| http://localhost:3000/simulator | A WhatsApp-style chat that runs the real pipeline |
+| http://localhost:3000/dashboard | Broadcast composer, guest list, delivery log, token spend |
+
+In demo mode Twilio, Google Calendar, and the knowledge base are replaced with
+in-memory fakes seeded with a plausible villa dataset. The AI path is real if you
+set `ANTHROPIC_API_KEY`, and stubbed if you don't.
+
+Try asking the simulator:
+
+- *"what's the wifi password?"* — answered from the knowledge base, no API calls
+- *"what time is the boat tomorrow?"* — triggers a `get_schedule` tool call
+- *"where do I go for dinner tonight and what's the dress code?"* — both sources
+
+## Going live
+
+Real credentials, the Twilio sandbox, the Google service account, and the Notion or
+Google Doc wiring are all covered step by step in **[docs/SETUP.md](docs/SETUP.md)**,
+written to be followed by a non-technical operations team.
+
+---
+
+## Admin surface
+
+Two ways in, because the people running a holiday don't want to open a laptop.
+
+**Web dashboard** — compose and preview a broadcast, add or remove guests, watch
+per-recipient delivery status, refresh the knowledge base, see token spend.
+
+**WhatsApp commands** — message the bot from a configured admin number:
+
+```
+!broadcast Boat departs in 90 minutes. Meet at the south jetty.
+!guests
+!add +447700900123 Priya
+!remove +447700900123
+!refresh
+!help
+```
+
+---
+
+## Knowledge base
+
+Point `KB_PROVIDER` at whichever source the team prefers to maintain:
+
+| Provider | Source | Use when |
+|---|---|---|
+| `local` | Markdown files in `kb/` | Default; version-controlled, no accounts |
+| `notion` | A Notion page | The team already lives in Notion |
+| `google-doc` | A Google Doc | The team already lives in Google Docs |
+
+Content is fetched on a daily cron, content-hashed so an unchanged document
+short-circuits, and refreshable on demand from the dashboard or `!refresh`.
+
+---
+
+## About the stack
+
+The brief specified Twilio, Claude, Google Calendar, n8n, and Railway/Render. This
+implementation follows that, with two documented judgements:
+
+**n8n orchestrates, it doesn't host the logic.** Signature verification, a tool-use
+loop, and a retrying broadcast queue are code, and code belongs in a repository
+where it can be reviewed and tested. `n8n/` ships importable workflows for the jobs
+n8n is genuinely good at — the daily knowledge-base refresh and a daily delivery
+summary.
+
+**The model is configurable.** `ANTHROPIC_MODEL` defaults to `claude-opus-5`. The
+brief named `claude-sonnet-4-20250514`, which has since been retired; set
+`ANTHROPIC_MODEL=claude-sonnet-5` for the equivalent current Sonnet-class model.
+
+---
+
+## Project status
+
+| Phase | |
+|---|---|
+| Scaffold, config, storage | 🚧 |
+| Twilio inbound + signature verification | ⬜ |
+| Google Calendar integration | ⬜ |
+| Claude tool-use loop | ⬜ |
+| Knowledge base providers + refresh | ⬜ |
+| Broadcast queue + delivery tracking | ⬜ |
+| Admin dashboard + WhatsApp commands | ⬜ |
+| Docker, deploy config, n8n workflows | ⬜ |
+| Documentation + demo | ⬜ |
+
+## Documentation
+
+- [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) — request lifecycle, tool-use flow, broadcast flow
+- [docs/SETUP.md](docs/SETUP.md) — Twilio, Google and Notion setup for an ops team
+- [docs/OPERATIONS.md](docs/OPERATIONS.md) — day-to-day: KB updates, guests, broadcasts
+- [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md) — Railway and Render
+
+## License
+
+MIT
