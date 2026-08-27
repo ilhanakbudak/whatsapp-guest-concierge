@@ -16,10 +16,12 @@
     "test:watch": "vitest",
     "typecheck": "tsc --noEmit",
     "lint": "eslint .",
-    "format": "prettier --write ."
+    "format": "prettier --write .",
+    "smoke": "node scripts/smoke.mjs"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.121.0",
+    "@fastify/formbody": "^9.0.0",
     "@google/genai": "^2.19.0",
     "@notionhq/client": "^5.1.0",
     "better-sqlite3": "^12.2.0",

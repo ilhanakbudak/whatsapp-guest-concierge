@@ -1,6 +1,8 @@
-import Fastify from "fastify";
+import Fastify, { type FastifyBaseLogger } from "fastify";
+import formbody from "@fastify/formbody";
 import { createContext, type AppContext } from "./app.js";
 import { isAppError } from "./lib/errors.js";
+import { registerWebhookRoutes } from "./routes/webhook.js";
 
 declare module "fastify" {
   interface FastifyInstance {
@@ -17,7 +19,10 @@ export async function buildServer(options: BuildServerOptions = {}) {
   const context = options.context ?? createContext();
 
   const app = Fastify({
-    loggerInstance: context.logger,
+    // Widened to FastifyBaseLogger deliberately: passing the concrete pino type
+    // narrows FastifyInstance's logger generic, which then fails to match the
+    // plain FastifyInstance that route modules accept.
+    loggerInstance: context.logger as FastifyBaseLogger,
     // Railway and Render terminate TLS upstream. Twilio signature validation
     // rebuilds the URL Twilio called, so getting the protocol wrong here breaks
     // every inbound message with an invalid-signature error.
@@ -36,6 +41,10 @@ export async function buildServer(options: BuildServerOptions = {}) {
     return reply.status(500).send({ error: "internal_error", message: "Something went wrong" });
   });
 
+  // Twilio posts application/x-www-form-urlencoded, which Fastify does not
+  // parse out of the box.
+  await app.register(formbody);
+
   // Decorating is how route handlers reach the container without a
   // module-level singleton — every handler gets it via `this` or `request.server`.
   app.decorate("context", context);
@@ -52,6 +61,8 @@ export async function buildServer(options: BuildServerOptions = {}) {
       guests: context.repos.guests.list({ activeOnly: true }).length,
     };
   });
+
+  await registerWebhookRoutes(app);
 
   app.addHook("onClose", async () => context.shutdown());
 

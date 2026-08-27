@@ -17,13 +17,22 @@ const REDACT_PATHS = [
   "*.To",
 ];
 
-export function createLogger(config: Pick<AppConfig, "LOG_LEVEL" | "isProduction">): Logger {
+export function createLogger(
+  config: Pick<AppConfig, "LOG_LEVEL" | "isProduction" | "isTest">,
+): Logger {
   return pino({
     level: config.LOG_LEVEL,
     redact: config.isProduction ? { paths: REDACT_PATHS, censor: "[redacted]" } : { paths: [] },
-    ...(config.isProduction
+    // pino-pretty runs in a worker thread, so it is development-only: in tests it
+    // would spawn one worker per logger instance and leak exit listeners.
+    ...(config.isProduction || config.isTest
       ? {}
-      : { transport: { target: "pino-pretty", options: { colorize: true, translateTime: "HH:MM:ss" } } }),
+      : {
+          transport: {
+            target: "pino-pretty",
+            options: { colorize: true, translateTime: "HH:MM:ss" },
+          },
+        }),
   });
 }
 
