@@ -79,6 +79,13 @@ const schema = z.object({
   TWILIO_AUTH_TOKEN: z.string().optional(),
   TWILIO_WHATSAPP_FROM: z.string().default("whatsapp:+14155238886"),
   TWILIO_VALIDATE_SIGNATURE: bool.default(true),
+  /**
+   * How the bot answers a guest. "api" posts to the Messages API after
+   * acknowledging the webhook; "twiml" replies inline in the webhook response.
+   * Trial accounts must use "twiml" — see src/whatsapp/twiml.ts.
+   */
+  TWILIO_REPLY_MODE: z.enum(["api", "twiml"]).default("api"),
+  TWILIO_TWIML_TIMEOUT_MS: z.coerce.number().int().positive().max(15_000).default(10_000),
 
   GOOGLE_SERVICE_ACCOUNT_FILE: z.string().optional(),
   GOOGLE_SERVICE_ACCOUNT_JSON: z.string().optional(),

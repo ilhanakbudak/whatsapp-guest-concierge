@@ -20,21 +20,58 @@ no accounts at all. Follow these sections when connecting real services.
 The auth token is also the key Twilio signs webhooks with, so it must be correct
 or every inbound message is rejected as unsigned.
 
+### Trial accounts: read this first
+
+Twilio trial accounts use **Try out WhatsApp** (the replacement for the old
+sandbox), and it has one restriction that shapes how the bot must be configured:
+
+> Outbound messages sent through the Messages API must reference an approved
+> Content template via `ContentSid`. Free-form text is rejected with
+> **error 21654 — ContentSid Required**. The Content API needed to create a
+> template is itself unavailable on trial accounts.
+
+So on a trial account:
+
+```bash
+TWILIO_REPLY_MODE=twiml
+```
+
+The bot then answers **inline in the webhook response** rather than via the
+Messages API, which Twilio permits, and conversations work normally. Replies must
+complete inside Twilio's webhook timeout — the observed round trip is 2–6 seconds
+including a calendar lookup, and `TWILIO_TWIML_TIMEOUT_MS` (default 10s) returns a
+short apology rather than letting Twilio show the guest nothing.
+
+**Broadcasts cannot work on a trial account.** They are outbound by definition,
+so they hit the same restriction. Upgrade the account to send announcements; the
+delivery log will show *"This Twilio account cannot send free-form messages"* if
+you try. Everything else — the AI, the calendar, the knowledge base, the guest
+allowlist — works fully on a trial.
+
+On a paid account, leave `TWILIO_REPLY_MODE=api`: replies are decoupled from the
+webhook and broadcasts work.
+
 ### Joining the sandbox (for testing)
 
 The WhatsApp sandbox lets you test without waiting for a WhatsApp Business
 approval.
 
-1. Go to **Messaging → Try it out → Send a WhatsApp message**.
-2. Note the sandbox number (usually `+1 415 523 8886`) and the join code, which
-   looks like `join <two-words>`.
+1. Go to **Messaging → Try out WhatsApp**.
+2. Note **your account's** sandbox number and the join code (`join <two-words>`).
+   The number is **not** the same for every account — `+1 415 523 8886` is the
+   legacy shared sandbox, and newer accounts get a different one. Copy the exact
+   number shown on that page into `TWILIO_WHATSAPP_FROM`; sending from the wrong
+   one fails.
 3. From the phone you want to test with, send that join code to the sandbox
    number on WhatsApp.
 4. Set the sender in `.env`:
 
    ```bash
-   TWILIO_WHATSAPP_FROM=whatsapp:+14155238886
+   TWILIO_WHATSAPP_FROM=whatsapp:+1XXXXXXXXXX   # the number on YOUR console page
    ```
+
+Run `npm run check:twilio` at any point to see which sender is configured, who
+has joined, and whether each guest is inside the 24-hour messaging window.
 
 > **The sandbox only talks to numbers that have joined it.** Every phone you want
 > to receive broadcasts must send the join code first. This is a sandbox
@@ -103,6 +140,17 @@ sqlite3 data/concierge.db \
 
 Use the number in **E.164** format, with no `whatsapp:` prefix — the service adds
 and strips that itself.
+
+### Testing without a phone
+
+```bash
+npm run simulate -- "what time is the boat today?"
+```
+
+This posts a correctly-signed inbound webhook exactly as Twilio would, so the
+whole pipeline — signature check, allowlist, model, calendar tools, reply — can be
+exercised before the Console webhook is even configured. A 403 means `PUBLIC_URL`
+does not match the URL being called.
 
 ### Verifying it works
 

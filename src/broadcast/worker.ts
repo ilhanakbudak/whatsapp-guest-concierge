@@ -110,7 +110,11 @@ export class BroadcastWorker {
                 // hit, so name it in terms they can act on.
                 sendError.isSessionWindowError
                   ? "Outside the 24-hour window — this guest must message the bot first"
-                  : sendError.message,
+                  : sendError.isTemplateRequiredError
+                    ? "This Twilio account cannot send free-form messages. Trial " +
+                      "accounts require an approved template; upgrade the account " +
+                      "to broadcast custom announcements."
+                    : sendError.message,
               );
               failed++;
             }

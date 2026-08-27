@@ -73,6 +73,17 @@ export async function buildServer(options: BuildServerOptions = {}) {
       context.tasks.run("resume-broadcasts", async () => {
         await context.broadcastWorker.resumeInterrupted();
       });
+
+      // Pre-load the knowledge base and today's schedule. Without this the first
+      // guest of the day pays for both cold fetches on top of the model call,
+      // which in TwiML mode can push the reply past Twilio's webhook timeout.
+      context.tasks.run("warm-caches", async () => {
+        await Promise.allSettled([
+          context.knowledgeBase.refresh(),
+          context.schedule.get({ range: "today" }),
+        ]);
+        context.logger.info("caches warmed");
+      });
     });
   }
 

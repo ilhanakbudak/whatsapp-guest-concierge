@@ -21,7 +21,9 @@
     "verify": "bash scripts/verify.sh",
     "check:calendar": "tsx scripts/check-calendar.ts",
     "check:llm": "tsx scripts/check-llm.ts",
-    "setup:calendar": "tsx scripts/setup-calendar.ts"
+    "setup:calendar": "tsx scripts/setup-calendar.ts",
+    "check:twilio": "tsx scripts/check-twilio.ts",
+    "simulate": "tsx scripts/simulate-inbound.ts"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.121.0",

@@ -2,10 +2,8 @@ import type { FastifyInstance, FastifyReply, FastifyRequest } from "fastify";
 import type { RecipientStatus } from "../db/types.js";
 import { normalizePhone, tryNormalizePhone } from "../lib/phone.js";
 import { getSignatureHeader, verifyTwilioSignature } from "../whatsapp/signature.js";
+import { EMPTY_TWIML, messageTwiml, withReplyTimeout } from "../whatsapp/twiml.js";
 import type { InboundWebhookPayload, StatusWebhookPayload } from "../whatsapp/types.js";
-
-/** Twilio expects TwiML. An empty Response means "I handled it, say nothing now". */
-const EMPTY_TWIML = '<?xml version="1.0" encoding="UTF-8"?><Response></Response>';
 
 const DECLINE_MESSAGE =
   "Hi! This number is for guests of the villa only. " +
@@ -13,6 +11,9 @@ const DECLINE_MESSAGE =
 
 const THROTTLE_MESSAGE =
   "You're sending messages faster than I can answer. Give me a moment and try again.";
+
+const SLOW_REPLY_MESSAGE =
+  "That's taking me longer than expected — give me a moment and ask again.";
 
 /**
  * Twilio's message statuses mapped onto ours. `sending`/`queued` are transient
@@ -82,6 +83,11 @@ export async function registerWebhookRoutes(app: FastifyInstance): Promise<void>
         });
 
         request.log.info({ authorized: false }, "message from unauthorized number");
+
+        if (config.TWILIO_REPLY_MODE === "twiml") {
+          return reply.type("text/xml").send(messageTwiml(DECLINE_MESSAGE));
+        }
+
         tasks.run("decline", async () => {
           await whatsapp.send({ to: phone, body: DECLINE_MESSAGE });
         });
@@ -92,6 +98,11 @@ export async function registerWebhookRoutes(app: FastifyInstance): Promise<void>
       const decision = rateLimiter.check(phone);
       if (!decision.allowed) {
         request.log.info({ guestId: guest.id, retryAfterSeconds: decision.retryAfterSeconds }, "guest rate limited");
+
+        if (config.TWILIO_REPLY_MODE === "twiml") {
+          return reply.type("text/xml").send(messageTwiml(THROTTLE_MESSAGE));
+        }
+
         tasks.run("throttle-notice", async () => {
           await whatsapp.send({ to: phone, body: THROTTLE_MESSAGE });
         });
@@ -106,14 +117,37 @@ export async function registerWebhookRoutes(app: FastifyInstance): Promise<void>
         twilioSid: payload.MessageSid ?? null,
       });
 
-      // Acknowledge now; answer out-of-band. See lib/tasks.ts for why.
-      tasks.run("reply", async () => {
-        const answer = await handler.handle({
-          guest,
-          body: payload.Body ?? "",
-          messageSid: payload.MessageSid ?? "",
+      const incoming = {
+        guest,
+        body: payload.Body ?? "",
+        messageSid: payload.MessageSid ?? "",
+      };
+
+      if (config.TWILIO_REPLY_MODE === "twiml") {
+        // Answer inline. Costs us the webhook's latency budget, but it is the
+        // only mode a Twilio trial account permits — see whatsapp/twiml.ts.
+        const answer = await withReplyTimeout(
+          handler.handle(incoming),
+          config.TWILIO_TWIML_TIMEOUT_MS,
+          SLOW_REPLY_MESSAGE,
+        );
+
+        if (!answer) return reply.type("text/xml").send(EMPTY_TWIML);
+
+        repos.messages.record({
+          guestId: guest.id,
+          phone,
+          direction: "outbound",
+          body: answer,
+          twilioSid: null,
         });
 
+        return reply.type("text/xml").send(messageTwiml(answer));
+      }
+
+      // Acknowledge now; answer out-of-band. See lib/tasks.ts for why.
+      tasks.run("reply", async () => {
+        const answer = await handler.handle(incoming);
         if (!answer) return;
 
         const sent = await whatsapp.send({ to: phone, body: answer });
@@ -149,5 +183,5 @@ export async function registerWebhookRoutes(app: FastifyInstance): Promise<void>
   );
 }
 
-export { DECLINE_MESSAGE, THROTTLE_MESSAGE, EMPTY_TWIML };
+export { DECLINE_MESSAGE, THROTTLE_MESSAGE, SLOW_REPLY_MESSAGE };
 export { normalizePhone };

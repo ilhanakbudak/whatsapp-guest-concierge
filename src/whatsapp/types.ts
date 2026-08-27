@@ -21,6 +21,12 @@ export const TWILIO_ERROR = {
   /** The recipient is not a WhatsApp user or has not joined the sandbox. */
   NOT_A_WHATSAPP_USER: "63003",
   RATE_LIMITED: "63018",
+  /**
+   * Trial accounts using "Try out WhatsApp" reject free-form sends and demand a
+   * Content template — which the Content API, itself paid-only, is needed to
+   * create. Set TWILIO_REPLY_MODE=twiml to answer guests inline instead.
+   */
+  TEMPLATE_REQUIRED: "21654",
 } as const;
 
 export class WhatsAppSendError extends Error {
@@ -40,6 +46,11 @@ export class WhatsAppSendError extends Error {
    */
   get isSessionWindowError(): boolean {
     return this.code === TWILIO_ERROR.OUTSIDE_SESSION_WINDOW;
+  }
+
+  /** The account cannot send free-form text at all — a plan limitation. */
+  get isTemplateRequiredError(): boolean {
+    return this.code === TWILIO_ERROR.TEMPLATE_REQUIRED;
   }
 }
 

@@ -11,6 +11,8 @@ import { rm } from "node:fs/promises";
 
 const PORT = process.env.SMOKE_PORT ?? "4321";
 const BASE = `http://127.0.0.1:${PORT}`;
+// Its own file inside data/, and only this file is removed afterwards —
+// deleting the whole directory would destroy a developer's local database.
 const DB = "./data/smoke-ci.db";
 
 const server = spawn(process.execPath, ["dist/index.js"], {
@@ -24,7 +26,9 @@ server.stderr.on("data", (d) => (output += d));
 
 const cleanup = async () => {
   server.kill("SIGTERM");
-  await rm("./data", { recursive: true, force: true });
+  for (const suffix of ["", "-wal", "-shm"]) {
+    await rm(`${DB}${suffix}`, { force: true });
+  }
 };
 
 const fail = async (message) => {
