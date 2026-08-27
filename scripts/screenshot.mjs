@@ -21,17 +21,20 @@ const CHROME =
   process.env.CHROME_PATH ??
   "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome";
 
+const SEED_GUEST = `localStorage.setItem("concierge.sim.phone", "+447700900001")`;
+
+/**
+ * Captured at three widths, because "responsive" is a claim that should be
+ * demonstrable rather than asserted.
+ */
 const SHOTS = [
-  { name: "dashboard", path: "/dashboard", width: 1280, height: 1120 },
-  {
-    name: "simulator",
-    path: "/simulator",
-    width: 760,
-    height: 720,
-    // Pick the guest who actually has a conversation, so the capture shows the
-    // bot working rather than an empty thread.
-    seed: `localStorage.setItem("concierge.sim.phone", "+447700900001")`,
-  },
+  { name: "dashboard", path: "/dashboard#overview", width: 1440, height: 900 },
+  { name: "dashboard-announcements", path: "/dashboard#announcements", width: 1440, height: 860 },
+  { name: "dashboard-guests", path: "/dashboard#guests", width: 1440, height: 820 },
+  { name: "dashboard-tablet", path: "/dashboard#overview", width: 834, height: 900 },
+  { name: "dashboard-mobile", path: "/dashboard#guests", width: 414, height: 860, mobile: true },
+  { name: "simulator", path: "/simulator", width: 800, height: 900, seed: SEED_GUEST },
+  { name: "simulator-mobile", path: "/simulator", width: 414, height: 860, mobile: true, seed: SEED_GUEST },
 ];
 
 await mkdir(OUT, { recursive: true });
@@ -125,7 +128,7 @@ try {
       width: shot.width,
       height: shot.height,
       deviceScaleFactor: 2,
-      mobile: false,
+      mobile: Boolean(shot.mobile),
     });
 
     // The dashboard reads its token from sessionStorage, so seed it and reload.
@@ -138,10 +141,9 @@ try {
     // Give the page's fetches time to land before capturing.
     await sleep(3500);
 
-    const { data } = await session.send("Page.captureScreenshot", {
-      format: "png",
-      captureBeyondViewport: true,
-    });
+    // Viewport-only: capturing beyond it would include whatever empty document
+    // space follows, which is not what the layout looks like in use.
+    const { data } = await session.send("Page.captureScreenshot", { format: "png" });
 
     await writeFile(`${OUT}/${shot.name}.png`, Buffer.from(data, "base64"));
     console.log(`  ${OUT}/${shot.name}.png`);

@@ -307,6 +307,15 @@ The simulator drives the real pipeline — same allowlist, same model, same
 calendar. Only Twilio is left out. It is served outside production by default,
 and requires the admin token if a deployed instance turns it on.
 
+Every view works down to 414px:
+
+<p align="center">
+  <img src="docs/assets/dashboard-mobile.png" alt="The guest list on a phone, with table rows reflowed into stacked cards" width="230">
+  <img src="docs/assets/simulator-mobile.png" alt="The simulator chat on a phone" width="230">
+</p>
+
+<p align="center"><sub>Tables become stacked cards rather than scrolling sideways.</sub></p>
+
 In demo mode Twilio and Google Calendar are replaced by in-memory fakes seeded
 with a plausible villa dataset. The AI path is real if you set an API key, and
 stubbed if you don't.
@@ -375,10 +384,26 @@ Three ways in, because the people running a holiday don't want to open a laptop.
 
 ### Dashboard
 
-Served at `/dashboard`. Plain HTML and `fetch` — no framework and no build step,
-because four buttons do not justify a bundler and the brief called out
-over-engineering. Responsive, keyboard accessible, and it follows the operating
-system's light or dark theme.
+Served at `/dashboard`. Plain HTML, CSS and ES modules — no framework and no
+build step, because the brief called out over-engineering and a bundler for one
+console would be exactly that. What replaces a component library is a strict
+token layer: no arbitrary values, a 4px spacing scale, a fixed type scale, and
+one set of motion durations.
+
+| | |
+|---|---|
+| **Type** | Inter and JetBrains Mono, self-hosted (78 KB, latin subset). A CDN font is a render-blocking dependency on someone else's uptime; this has to work on villa wifi. |
+| **Layout** | Components size themselves with **container queries**, so a panel behaves correctly wherever it is placed — including inside one the operator has resized. |
+| **Resizable** | The announcements split has a keyboard-operable drag handle; the simulator thread resizes vertically. Both persist. |
+| **Theme** | Follows the operating system, light or dark. |
+| **Motion** | `transform`/`opacity` only, 130–300ms, and fully disabled under `prefers-reduced-motion`. |
+
+<p align="center">
+  <img src="docs/assets/dashboard-announcements.png" alt="The announcements view: a compose panel with live character count beside a delivery table, separated by a draggable handle" width="480">
+  <img src="docs/assets/dashboard-tablet.png" alt="The same console at tablet width, with panels reflowed into a single column" width="280">
+</p>
+
+<p align="center"><sub>Left: announcements at 1440px. Right: the same build at 834px.</sub></p>
 
 ### WhatsApp commands
 

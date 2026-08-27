@@ -4,386 +4,215 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="color-scheme" content="light dark">
-<title>Concierge · Dashboard</title>
-<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><text y='26' font-size='26'>🏝️</text></svg>">
+<title>Villa Meltem · Concierge Admin</title>
+<meta name="description" content="Admin console for the WhatsApp guest concierge.">
+<link rel="preload" href="/fonts/inter-latin-var.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect width='32' height='32' rx='8' fill='%230e7c6b'/><text x='16' y='23' font-size='18' font-family='sans-serif' font-weight='700' fill='white' text-anchor='middle'>V</text></svg>">
 <link rel="stylesheet" href="/app.css">
 </head>
 <body>
 
-<div class="topbar">
-  <div class="mark" aria-hidden="true">V</div>
-  <h1>Guest Concierge</h1>
-  <span class="pill muted" id="env-pill" hidden></span>
-  <div class="spacer"></div>
-  <a class="btn" href="/simulator" id="sim-link" hidden style="text-decoration:none">Open simulator</a>
-  <button id="sign-out" class="small" hidden>Sign out</button>
-</div>
-
-<!-- token gate ------------------------------------------------------------- -->
-<div class="wrap gate" id="gate">
-  <div class="card">
-    <header><h2>Admin access</h2></header>
-    <div class="body">
-      <p>Enter the admin token from the service's <code>ADMIN_API_TOKEN</code>.</p>
-      <form id="gate-form">
+<!-- ── token gate ────────────────────────────────────────────────────────── -->
+<div class="gate" id="gate">
+  <div class="panel">
+    <header>
+      <div class="brand">
+        <div class="brand-mark" aria-hidden="true">V</div>
+        <div class="brand-text"><strong>Villa Meltem</strong><span>Concierge admin</span></div>
+      </div>
+    </header>
+    <div class="panel-body">
+      <form id="gate-form" style="display:grid;gap:var(--sp-4)">
         <div class="field">
           <label for="token">Admin token</label>
-          <input id="token" type="password" autocomplete="current-password" required>
+          <input id="token" type="password" autocomplete="current-password" required
+                 placeholder="ADMIN_API_TOKEN">
+          <span class="hint">From the service's environment configuration.</span>
         </div>
-        <div id="gate-error" class="notice error" hidden></div>
-        <button class="primary" type="submit" style="width:100%;margin-top:4px">Continue</button>
+        <div id="gate-error" class="notice danger" hidden></div>
+        <button class="btn primary" type="submit">Continue</button>
       </form>
     </div>
   </div>
 </div>
 
-<!-- dashboard -------------------------------------------------------------- -->
-<main class="wrap" id="app" hidden>
-  <div class="grid">
+<!-- ── app ───────────────────────────────────────────────────────────────── -->
+<div class="shell" id="shell" hidden data-nav="closed">
 
-    <section class="card col-12">
-      <header><h2>Overview</h2><div class="spacer"></div>
-        <span class="small muted" id="overview-time"></span></header>
-      <div class="body">
-        <div class="stats" id="stats"><div class="muted small">Loading…</div></div>
+  <nav class="nav" id="nav" aria-label="Sections">
+    <div class="brand">
+      <div class="brand-mark" aria-hidden="true">V</div>
+      <div class="brand-text"><strong>Villa Meltem</strong><span id="nav-env">Concierge admin</span></div>
+    </div>
+
+    <div class="nav-group">
+      <div class="nav-label">Manage</div>
+      <button class="nav-item" data-nav-to="overview" aria-current="true">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M3 12h4l3 8 4-16 3 8h4"/></svg>
+        Overview
+      </button>
+      <button class="nav-item" data-nav-to="announcements">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M3 11v2a1 1 0 0 0 1 1h3l5 4V6L7 10H4a1 1 0 0 0-1 1Z"/><path d="M16 9a4 4 0 0 1 0 6"/></svg>
+        Announcements
+      </button>
+      <button class="nav-item" data-nav-to="guests">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><circle cx="9" cy="8" r="3.2"/><path d="M3 20a6 6 0 0 1 12 0"/><path d="M16 5.5a3 3 0 0 1 0 5"/><path d="M18 20a5.5 5.5 0 0 0-3-4.9"/></svg>
+        Guests <span class="count" id="nav-guest-count"></span>
+      </button>
+      <button class="nav-item" data-nav-to="knowledge">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M4 5.5A1.5 1.5 0 0 1 5.5 4H11v16H5.5A1.5 1.5 0 0 1 4 18.5Z"/><path d="M20 5.5A1.5 1.5 0 0 0 18.5 4H13v16h5.5a1.5 1.5 0 0 0 1.5-1.5Z"/></svg>
+        House info
+      </button>
+    </div>
+
+    <div class="nav-foot">
+      <a class="nav-item" href="/simulator">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M20 15a2 2 0 0 1-2 2H8l-4 4V5a2 2 0 0 1 2-2h12a2 2 0 0 1 2 2Z"/></svg>
+        Simulator
+      </a>
+      <button class="nav-item" id="sign-out">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M15 17l5-5-5-5"/><path d="M20 12H9"/><path d="M12 3H6a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h6"/></svg>
+        Sign out
+      </button>
+    </div>
+  </nav>
+
+  <div class="main">
+    <div class="topbar">
+      <button class="btn icon ghost nav-toggle" id="nav-toggle" aria-label="Toggle navigation" aria-expanded="false">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M4 7h16M4 12h16M4 17h16"/></svg>
+      </button>
+      <div style="min-width:0">
+        <h1 id="page-title">Overview</h1>
+        <div class="sub" id="page-sub"></div>
       </div>
-    </section>
+      <div class="spacer"></div>
+      <span class="pill" id="env-pill" hidden></span>
+      <button class="btn icon ghost" id="reload" aria-label="Reload data" title="Reload">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M20 11a8 8 0 1 0-2.3 5.7"/><path d="M20 5v6h-6"/></svg>
+      </button>
+    </div>
 
-    <section class="card col-7">
-      <header><h2>Send an announcement</h2></header>
-      <div class="body">
-        <form id="broadcast-form">
-          <div class="field">
-            <label for="message">Message</label>
-            <textarea id="message" placeholder="Boat departs in 90 minutes. Meet at the south jetty."
-                      maxlength="1500" required></textarea>
-            <div class="small muted" style="margin-top:5px">
-              Use <code>{first_name}</code> or <code>{name}</code> to personalise.
-              <span id="char-count" style="float:right"></span>
+    <div class="content">
+
+      <!-- Overview -->
+      <section data-section="overview" class="active" aria-label="Overview">
+        <div class="panel">
+          <header><h2>Last 7 days</h2></header>
+          <div class="panel-body"><div class="stats" id="stats"></div></div>
+        </div>
+
+        <div class="grid split">
+          <div class="panel">
+            <header><h2>Recent conversations</h2><div class="spacer"></div>
+              <a class="btn sm ghost" href="/simulator">Open simulator</a></header>
+            <div class="panel-body flush scroll" id="activity" style="max-height:420px"></div>
+          </div>
+          <div style="display:grid;gap:var(--sp-5);align-content:start">
+          <div class="panel">
+            <header><h2>Assistant</h2></header>
+            <div class="panel-body" id="assistant-body"></div>
+          </div>
+          <div class="panel">
+            <header><h2>House information</h2><div class="spacer"></div>
+              <button class="btn sm" data-refresh-kb>Refresh</button></header>
+            <div class="panel-body" id="kb-mini"></div>
+          </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Announcements -->
+      <section data-section="announcements" aria-label="Announcements">
+        <div class="grid resizable" id="announce-split">
+          <div class="panel">
+            <header><h2>Compose</h2></header>
+            <div class="panel-body">
+              <form id="broadcast-form" style="display:grid;gap:var(--sp-4)">
+                <div class="field">
+                  <label for="message">Message</label>
+                  <textarea id="message" maxlength="1500" required
+                            placeholder="Boat departs in 90 minutes. Meet at the south jetty."></textarea>
+                  <div style="display:flex;gap:var(--sp-3);justify-content:space-between">
+                    <span class="hint">Use <code class="mono">{first_name}</code> or <code class="mono">{name}</code>.</span>
+                    <span class="hint mono" id="char-count">0 / 1500</span>
+                  </div>
+                </div>
+                <div style="display:flex;gap:var(--sp-2);flex-wrap:wrap">
+                  <button class="btn" type="submit" id="preview-btn">Preview</button>
+                  <button class="btn primary" type="button" id="send-btn" disabled>Send to all</button>
+                </div>
+              </form>
+              <div id="preview-area" style="margin-top:var(--sp-4);display:grid;gap:var(--sp-3)"></div>
             </div>
           </div>
-          <div class="row">
-            <button type="submit" id="preview-btn">Preview</button>
-            <button type="button" class="primary" id="send-btn" disabled>Send to all</button>
+
+          <button class="resize-handle" id="resize-handle" aria-label="Resize panels"
+                  role="separator" aria-orientation="vertical" tabindex="0"></button>
+
+          <div class="panel">
+            <header><h2>Sent</h2></header>
+            <div class="panel-body flush scroll" id="broadcasts"></div>
           </div>
-        </form>
-        <div id="preview-area" style="margin-top:14px"></div>
-      </div>
-    </section>
+        </div>
+      </section>
 
-    <section class="card col-5">
-      <header><h2>House information</h2><div class="spacer"></div>
-        <button class="small" id="refresh-kb">Refresh now</button></header>
-      <div class="body" id="kb-body"><div class="muted small">Loading…</div></div>
-    </section>
-
-    <section class="card col-5">
-      <header><h2>Guests</h2><div class="spacer"></div>
-        <span class="small muted" id="guest-count"></span></header>
-      <div class="body">
-        <form id="guest-form" class="row" style="margin-bottom:12px">
-          <div class="field">
-            <label for="guest-phone">Number</label>
-            <input id="guest-phone" placeholder="+447700900123" required>
+      <!-- Guests -->
+      <section data-section="guests" aria-label="Guests">
+        <div class="panel">
+          <header><h2>Add a guest</h2></header>
+          <div class="panel-body">
+            <form id="guest-form" class="form-row">
+              <div class="field">
+                <label for="guest-phone">Number</label>
+                <input id="guest-phone" placeholder="+447700900123" required inputmode="tel">
+              </div>
+              <div class="field">
+                <label for="guest-name">Name</label>
+                <input id="guest-name" placeholder="Priya Patel" required>
+              </div>
+              <button class="btn primary" type="submit">Add guest</button>
+            </form>
           </div>
-          <div class="field">
-            <label for="guest-name">Name</label>
-            <input id="guest-name" placeholder="Priya Patel" required>
-          </div>
-          <button class="primary" type="submit">Add</button>
-        </form>
-      </div>
-      <div class="body tight"><div id="guests"></div></div>
-    </section>
+        </div>
 
-    <section class="card col-7">
-      <header><h2>Recent announcements</h2></header>
-      <div class="body tight"><div id="broadcasts"></div></div>
-    </section>
+        <div class="panel">
+          <header><h2>Allowlist</h2><div class="spacer"></div>
+            <span class="pill plain" id="guest-count"></span></header>
+          <div class="panel-body flush" id="guests"></div>
+        </div>
+      </section>
 
+      <!-- Knowledge -->
+      <section data-section="knowledge" aria-label="House information">
+        <div class="panel">
+          <header><h2>House information</h2><div class="spacer"></div>
+            <button class="btn sm" data-refresh-kb>Refresh now</button></header>
+          <div class="panel-body" id="kb-body"></div>
+        </div>
+        <div class="panel">
+          <header><h2>Change history</h2></header>
+          <div class="panel-body flush" id="kb-history"></div>
+        </div>
+      </section>
+
+    </div>
   </div>
-</main>
+</div>
+
+<dialog id="confirm-dialog">
+  <div class="dialog-body">
+    <h3 id="confirm-title">Are you sure?</h3>
+    <p class="muted" id="confirm-text"></p>
+  </div>
+  <div class="dialog-actions">
+    <button class="btn" value="cancel" id="confirm-cancel">Cancel</button>
+    <button class="btn primary" value="ok" id="confirm-ok">Confirm</button>
+  </div>
+</dialog>
 
 <div id="toasts" aria-live="polite" aria-atomic="true"></div>
 
-<script type="module">
-const KEY = "concierge.admin.token";
-const $ = (id) => document.getElementById(id);
-let token = sessionStorage.getItem(KEY) || "";
-
-/* --- helpers ------------------------------------------------------------- */
-
-function toast(message, kind = "ok") {
-  const el = document.createElement("div");
-  el.className = `toast ${kind}`;
-  el.textContent = message;
-  $("toasts").append(el);
-  setTimeout(() => el.remove(), 4200);
-}
-
-async function api(path, options = {}) {
-  const res = await fetch(path, {
-    ...options,
-    headers: {
-      Authorization: `Bearer ${token}`,
-      ...(options.body ? { "Content-Type": "application/json" } : {}),
-      ...options.headers,
-    },
-  });
-
-  if (res.status === 401) {
-    signOut();
-    throw new Error("Session expired — sign in again.");
-  }
-
-  const text = await res.text();
-  const data = text ? JSON.parse(text) : null;
-  if (!res.ok) throw new Error(data?.message || data?.error || `Request failed (${res.status})`);
-  return data;
-}
-
-/** Everything user-supplied goes through here; never innerHTML with raw values. */
-const esc = (v) =>
-  String(v ?? "").replace(/[&<>"']/g, (c) =>
-    ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c]);
-
-/**
- * Two date shapes reach this page: JSON-serialised Dates (ISO 8601, with a zone)
- * and SQLite timestamps ("YYYY-MM-DD HH:MM:SS", UTC but unmarked). Appending "Z"
- * to the first produces an invalid date, which rendered as "NaNd ago".
- */
-const ago = (value) => {
-  if (!value) return "never";
-  const hasZone = /(Z|[+-]\d{2}:?\d{2})$/.test(value);
-  const parsed = new Date(hasZone ? value : value.replace(" ", "T") + "Z");
-  if (Number.isNaN(parsed.getTime())) return "unknown";
-
-  const mins = Math.floor((Date.now() - parsed) / 60000);
-  if (mins < 0) return "just now";
-  if (mins < 1) return "just now";
-  if (mins < 60) return `${mins}m ago`;
-  if (mins < 1440) return `${Math.floor(mins / 60)}h ago`;
-  return `${Math.floor(mins / 1440)}d ago`;
-};
-
-/* --- auth ---------------------------------------------------------------- */
-
-function signOut() {
-  token = "";
-  sessionStorage.removeItem(KEY);
-  $("app").hidden = true;
-  $("sign-out").hidden = true;
-  $("sim-link").hidden = true;
-  $("gate").hidden = false;
-}
-
-$("gate-form").addEventListener("submit", async (e) => {
-  e.preventDefault();
-  token = $("token").value.trim();
-  $("gate-error").hidden = true;
-  try {
-    await api("/admin/kb");
-    sessionStorage.setItem(KEY, token);
-    start();
-  } catch (err) {
-    $("gate-error").textContent = err.message;
-    $("gate-error").hidden = false;
-  }
-});
-
-$("sign-out").addEventListener("click", signOut);
-
-/* --- rendering ----------------------------------------------------------- */
-
-async function loadOverview() {
-  const [ready, usage, guests] = await Promise.all([
-    fetch("/health/ready").then((r) => r.json()),
-    api("/admin/usage?days=7"),
-    api("/admin/guests"),
-  ]);
-
-  const cache = Math.round((usage.cacheHitRate || 0) * 100);
-  $("stats").innerHTML = `
-    <div class="stat"><span class="n">${guests.length}</span><span class="k">active guests</span></div>
-    <div class="stat"><span class="n">${usage.events}</span><span class="k">replies · 7 days</span></div>
-    <div class="stat"><span class="n">${cache}%</span><span class="k">input cached</span></div>
-    <div class="stat"><span class="n">${(usage.inputTokens + usage.cachedInputTokens).toLocaleString()}</span><span class="k">input tokens</span></div>
-    <div class="stat"><span class="n">${usage.outputTokens.toLocaleString()}</span><span class="k">output tokens</span></div>`;
-
-  $("overview-time").textContent = `${ready.llm.provider} · ${ready.llm.model}`;
-  const pill = $("env-pill");
-  pill.hidden = false;
-  pill.className = ready.demoMode ? "pill warn" : "pill ok";
-  pill.textContent = ready.demoMode ? "demo mode" : "live";
-  $("sim-link").hidden = false;
-}
-
-async function loadGuests() {
-  const guests = await api("/admin/guests");
-  $("guest-count").textContent = `${guests.length} active`;
-
-  $("guests").innerHTML = guests.length === 0
-    ? `<div class="empty">No guests yet. Add one above.</div>`
-    : `<table><thead><tr><th>Name</th><th>Number</th><th></th></tr></thead><tbody>${guests
-        .map((g) => `<tr>
-            <td>${esc(g.name)}${g.role === "admin" ? ' <span class="pill">admin</span>' : ""}</td>
-            <td class="mono muted">${esc(g.phone)}</td>
-            <td style="text-align:right"><button class="small danger" data-remove="${esc(g.phone)}">Remove</button></td>
-          </tr>`).join("")}</tbody></table>`;
-}
-
-async function loadKb() {
-  const kb = await api("/admin/kb");
-  $("kb-body").innerHTML = `
-    <div class="stats" style="grid-template-columns:1fr 1fr">
-      <div class="stat"><span class="n">${(kb.characters || 0).toLocaleString()}</span><span class="k">characters</span></div>
-      <div class="stat"><span class="n" style="font-size:16px;padding-top:7px">${ago(kb.fetchedAt)}</span><span class="k">last loaded</span></div>
-    </div>
-    <div class="small muted mono" style="margin-top:12px">${esc(kb.source)}</div>
-    ${kb.lastError ? `<div class="notice error" style="margin-top:10px">${esc(kb.lastError)}</div>` : ""}
-    ${kb.history?.length ? `<div class="small muted" style="margin-top:10px">Last changed ${ago(kb.history[0].fetchedAt)}</div>` : ""}`;
-}
-
-async function loadBroadcasts() {
-  const list = await api("/admin/broadcasts");
-  $("broadcasts").innerHTML = list.length === 0
-    ? `<div class="empty">No announcements sent yet.</div>`
-    : `<table><thead><tr><th>Message</th><th>Delivery</th><th>When</th></tr></thead><tbody>${list
-        .map((b) => {
-          const c = b.counts || {};
-          // "sent" means Twilio accepted it; "delivered" means the phone got it.
-          // Conflating them would overstate what we actually know.
-          const confirmed = (c.delivered || 0) + (c.read || 0);
-          const accepted = c.sent || 0;
-          const failed = (c.failed || 0) + (c.undelivered || 0);
-          const pending = (c.queued || 0) + (c.sending || 0);
-          const label = confirmed > 0 ? `${confirmed} delivered` : `${accepted} sent`;
-          return `<tr>
-            <td>${esc(b.body.length > 64 ? b.body.slice(0, 64) + "…" : b.body)}</td>
-            <td>
-              <span class="pill ${failed ? "warn" : "ok"}">${label}</span>
-              ${failed ? `<span class="pill error">${failed} failed</span>` : ""}
-              ${pending ? `<span class="pill">${pending} pending</span>` : ""}
-            </td>
-            <td class="small muted">${ago(b.createdAt)}</td>
-          </tr>`;
-        }).join("")}</tbody></table>`;
-}
-
-/* --- actions ------------------------------------------------------------- */
-
-$("message").addEventListener("input", (e) => {
-  $("char-count").textContent = `${e.target.value.length} / 1500`;
-  $("send-btn").disabled = true;
-  $("preview-area").innerHTML = "";
-});
-
-$("broadcast-form").addEventListener("submit", async (e) => {
-  e.preventDefault();
-  const message = $("message").value.trim();
-  if (!message) return;
-
-  $("preview-btn").disabled = true;
-  try {
-    const p = await api("/admin/broadcast", {
-      method: "POST",
-      body: JSON.stringify({ message, dryRun: true }),
-    });
-
-    $("preview-area").innerHTML = `
-      <div class="notice ${p.warnings.length ? "warn" : "ok"}">
-        Will send to <strong>${p.recipientCount}</strong> guest${p.recipientCount === 1 ? "" : "s"}.
-        ${p.warnings.map((w) => `<div style="margin-top:6px">${esc(w)}</div>`).join("")}
-      </div>
-      ${p.samples.map((s) => `<div class="preview" style="margin-top:10px">
-          <div class="small muted" style="margin-bottom:5px">${esc(s.name)} · ${esc(s.phone)}</div>${esc(s.body)}
-        </div>`).join("")}`;
-
-    // Sending is only ever enabled after a preview has been seen.
-    $("send-btn").disabled = p.recipientCount === 0;
-  } catch (err) {
-    toast(err.message, "error");
-  } finally {
-    $("preview-btn").disabled = false;
-  }
-});
-
-$("send-btn").addEventListener("click", async () => {
-  const message = $("message").value.trim();
-  const count = $("preview-area").querySelector("strong")?.textContent ?? "all";
-  if (!confirm(`Send this announcement to ${count} guests? This cannot be undone.`)) return;
-
-  $("send-btn").disabled = true;
-  try {
-    const res = await api("/admin/broadcast", { method: "POST", body: JSON.stringify({ message }) });
-    toast(`Queued for ${res.queued} guest${res.queued === 1 ? "" : "s"}.`);
-    $("message").value = "";
-    $("preview-area").innerHTML = "";
-    $("char-count").textContent = "";
-    setTimeout(loadBroadcasts, 1200);
-  } catch (err) {
-    toast(err.message, "error");
-    $("send-btn").disabled = false;
-  }
-});
-
-$("guest-form").addEventListener("submit", async (e) => {
-  e.preventDefault();
-  try {
-    await api("/admin/guests", {
-      method: "POST",
-      body: JSON.stringify({ phone: $("guest-phone").value, name: $("guest-name").value }),
-    });
-    toast("Guest added.");
-    $("guest-phone").value = "";
-    $("guest-name").value = "";
-    await Promise.all([loadGuests(), loadOverview()]);
-  } catch (err) {
-    toast(err.message, "error");
-  }
-});
-
-$("guests").addEventListener("click", async (e) => {
-  const phone = e.target.dataset?.remove;
-  if (!phone) return;
-  if (!confirm(`Remove ${phone}? They will no longer be able to message the bot.`)) return;
-
-  try {
-    await api(`/admin/guests/${encodeURIComponent(phone)}`, { method: "DELETE" });
-    toast("Guest removed.");
-    await Promise.all([loadGuests(), loadOverview()]);
-  } catch (err) {
-    toast(err.message, "error");
-  }
-});
-
-$("refresh-kb").addEventListener("click", async (e) => {
-  e.target.disabled = true;
-  try {
-    const r = await api("/admin/kb/refresh", { method: "POST" });
-    toast(r.changed ? "House information updated." : "Already up to date.");
-    await loadKb();
-  } catch (err) {
-    toast(err.message, "error");
-  } finally {
-    e.target.disabled = false;
-  }
-});
-
-/* --- boot ---------------------------------------------------------------- */
-
-async function start() {
-  $("gate").hidden = true;
-  $("app").hidden = false;
-  $("sign-out").hidden = false;
-  try {
-    await Promise.all([loadOverview(), loadGuests(), loadKb(), loadBroadcasts()]);
-  } catch (err) {
-    toast(err.message, "error");
-  }
-}
-
-if (token) start().catch(signOut);
-</script>
+<script type="module" src="/dashboard.js"></script>
 </body>
 </html>

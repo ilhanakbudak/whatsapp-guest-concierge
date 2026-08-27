@@ -97,6 +97,19 @@ export async function registerAdminRoutes(app: FastifyInstance): Promise<void> {
     return { since, days, ...repos.usage.totalsSince(since) };
   });
 
+  /** Recent traffic, so the team can see the bot is actually being used. */
+  app.get("/admin/activity", { preHandler: guard }, async (request) => {
+    const limit = Math.min(Number((request.query as { limit?: string }).limit ?? 12), 100);
+    const guests = new Map(repos.guests.list().map((guest) => [guest.id, guest.name]));
+
+    return repos.messages.recent(limit).map((message) => ({
+      direction: message.direction,
+      body: message.body,
+      at: message.createdAt,
+      guest: message.guestId ? (guests.get(message.guestId) ?? "Unknown") : "Unknown number",
+    }));
+  });
+
   // --- knowledge base -------------------------------------------------------
 
   app.get("/admin/kb", { preHandler: guard }, async () => ({
