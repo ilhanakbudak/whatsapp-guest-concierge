@@ -29,6 +29,10 @@ with a 403, still returns 401 on the admin API, and contains no `.env` or
 > You do not need Docker locally to work on this repository. CI is the
 > verification.
 
+The image is ~330 MB. It was 505 MB until the `googleapis` meta-package was
+replaced with `@googleapis/calendar` and `@googleapis/docs` — the meta-package
+bundles every Google API and is 182 MB on its own, of which this service uses two.
+
 ### Without Docker
 
 Both target platforms detect Node and build natively — Railway via Nixpacks,
