@@ -6,8 +6,15 @@
 .env.*
 !.env.example
 *.pem
-*-service-account.json
+
+# Google service-account keys. GCP downloads these as <project>-<12 hex>.json,
+# which no "credentials"-shaped glob would catch — so ignore that shape directly
+# and keep a wholly-ignored directory for anything else secret.
+secrets/
+*service-account*.json
 google-credentials.json
+gcp-*.json
+*-[0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f].json
 
 # Data
 data/

@@ -18,7 +18,9 @@
     "lint": "eslint .",
     "format": "prettier --write .",
     "smoke": "node scripts/smoke.mjs",
-    "verify": "bash scripts/verify.sh"
+    "verify": "bash scripts/verify.sh",
+    "check:calendar": "tsx scripts/check-calendar.ts",
+    "check:llm": "tsx scripts/check-llm.ts"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.121.0",

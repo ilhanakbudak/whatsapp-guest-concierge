@@ -126,7 +126,10 @@ describe("guest allowlist", () => {
     const sent = harness.whatsapp.lastMessageTo(GUEST_PHONE);
     expect(sent).toBeDefined();
     expect(sent!.body).not.toBe(DECLINE_MESSAGE);
-    expect(sent!.body).toContain("Priya");
+    // Asserting the guest gets a real answer, not the model's exact wording —
+    // the demo provider answers wifi questions from the knowledge base.
+    expect(sent!.body.length).toBeGreaterThan(0);
+    expect(sent!.body.toLowerCase()).toContain("villameltem");
   });
 
   it("declines an unknown number without invoking the handler", async () => {

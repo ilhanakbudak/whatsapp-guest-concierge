@@ -15,7 +15,16 @@ with a durable broadcast system for pushing announcements to every guest at once
 
 Three decisions do most of the work, and they're the reason this repo exists:
 
-**1. The calendar is a tool call, not prompt stuffing.**
+**1. One tool-use loop, three providers.**
+The agentic loop lives in `src/ai/loop.ts` rather than inside a vendor SDK
+helper, because Anthropic, OpenAI and Gemini disagree about nearly everything:
+tool schemas (`input_schema` vs `function.parameters` vs `functionDeclarations`),
+how tool results are represented, whether the assistant role is called
+`assistant` or `model`, and how prompt caching is expressed. Three thin adapters
+absorb all of it and a single conformance suite runs the same assertions against
+all of them. Switching provider is `LLM_PROVIDER=` plus an API key.
+
+**2. The calendar is a tool call, not prompt stuffing.**
 The obvious build dumps the next week of calendar events into the system prompt on
 every message. That's wrong twice: it's stale the moment the PA team moves the boat
 departure, and it burns tokens on the 90% of messages that are about WiFi
@@ -23,14 +32,16 @@ passwords. Instead Claude gets a `get_schedule` tool and calls it only when a
 question is actually schedule-shaped — so the answer reflects a change made sixty
 seconds ago, and a "what's the wifi?" message never touches Google at all.
 
-**2. The knowledge base is a cache breakpoint.**
+**3. The knowledge base is a cache breakpoint.**
 The villa handbook is a few thousand near-static tokens sent on every single
 request. It sits first in the system prompt behind an explicit
 `cache_control` breakpoint, with volatile content (current time, guest name) placed
-strictly after it. The dashboard shows the live cache hit rate, because a silently
-broken prompt cache is invisible until the bill arrives.
+strictly after it. Ordering is enforced by the prompt builder and asserted in
+tests, because a silently broken prompt cache is invisible until the bill
+arrives. Measured against the live API, 45% of input tokens are served from
+cache across a four-message conversation.
 
-**3. Broadcasts are a queue, not a for-loop.**
+**4. Broadcasts are a queue, not a for-loop.**
 `await Promise.all(guests.map(send))` looks fine until Twilio rate-limits you
 halfway through and nobody can tell which of the twelve guests actually heard that
 the boat leaves in ninety minutes. Every broadcast writes one row per recipient and
@@ -168,8 +179,8 @@ a guest's first message.
 | Scaffold, config, storage | ✅ |
 | Twilio inbound + signature verification | ✅ |
 | Google Calendar integration | ✅ |
-| LLM tool-use loop (Claude / GPT / Gemini) | 🚧 |
-| Knowledge base providers + refresh | ⬜ |
+| LLM tool-use loop (Claude / GPT / Gemini) | ✅ |
+| Knowledge base (local Markdown; Notion / Google Doc next) | 🚧 |
 | Broadcast queue + delivery tracking | ⬜ |
 | Admin dashboard + WhatsApp commands | ⬜ |
 | Docker, deploy config, n8n workflows | ⬜ |

@@ -4,11 +4,15 @@ import { createRepositories, type Repositories } from "./db/repositories/index.j
 import { createLogger, type Logger } from "./lib/logger.js";
 import { TokenBucketLimiter } from "./lib/rate-limit.js";
 import { BackgroundTaskRunner, type TaskRunner } from "./lib/tasks.js";
+import { ConciergeHandler } from "./ai/handler.js";
+import { createLlmProvider } from "./ai/registry.js";
+import type { LlmProvider } from "./ai/types.js";
 import { createCalendarClient } from "./calendar/index.js";
+import { createKnowledgeBase, type CachedKnowledgeBase } from "./knowledge/index.js";
 import { ScheduleService } from "./calendar/schedule.js";
 import type { CalendarClient } from "./calendar/types.js";
 import { createWhatsAppClient } from "./whatsapp/index.js";
-import { PlaceholderHandler, type MessageHandler } from "./whatsapp/handler.js";
+import type { MessageHandler } from "./whatsapp/handler.js";
 import type { WhatsAppClient } from "./whatsapp/types.js";
 
 /**
@@ -24,6 +28,8 @@ export interface AppContext {
   whatsapp: WhatsAppClient;
   calendar: CalendarClient;
   schedule: ScheduleService;
+  llm: LlmProvider;
+  knowledgeBase: CachedKnowledgeBase;
   handler: MessageHandler;
   tasks: TaskRunner;
   rateLimiter: TokenBucketLimiter;
@@ -37,6 +43,7 @@ export interface CreateContextOptions {
   /** Overrides for tests; each defaults to the configured implementation. */
   whatsapp?: WhatsAppClient;
   calendar?: CalendarClient;
+  llm?: LlmProvider;
   handler?: MessageHandler;
 }
 
@@ -60,16 +67,36 @@ export function createContext(options: CreateContextOptions = {}): AppContext {
 
   const tasks = new BackgroundTaskRunner(logger);
   const calendar = options.calendar ?? createCalendarClient(config);
+  const repos = createRepositories(db);
+  const schedule = new ScheduleService(calendar, { timeZone: config.CALENDAR_TIMEZONE });
+  const llm = options.llm ?? createLlmProvider(config);
+  const knowledgeBase = createKnowledgeBase(config);
 
   return {
     config,
     logger,
     db,
-    repos: createRepositories(db),
+    repos,
     whatsapp: options.whatsapp ?? createWhatsAppClient(config, logger),
     calendar,
-    schedule: new ScheduleService(calendar, { timeZone: config.CALENDAR_TIMEZONE }),
-    handler: options.handler ?? new PlaceholderHandler(),
+    schedule,
+    llm,
+    knowledgeBase,
+    handler:
+      options.handler ??
+      new ConciergeHandler({
+        provider: llm,
+        schedule,
+        knowledgeBase,
+        conversations: repos.conversations,
+        usage: repos.usage,
+        logger,
+        timeZone: config.CALENDAR_TIMEZONE,
+        maxTokens: config.LLM_MAX_TOKENS,
+        temperature: config.LLM_TEMPERATURE,
+        maxIterations: config.LLM_MAX_TOOL_ITERATIONS,
+        historyTurns: config.CONVERSATION_HISTORY_TURNS,
+      }),
     tasks,
     rateLimiter: new TokenBucketLimiter(
       config.GUEST_RATE_LIMIT_PER_MINUTE,

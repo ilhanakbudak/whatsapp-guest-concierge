@@ -17,16 +17,3 @@ export interface IncomingMessage {
 export interface MessageHandler {
   handle(message: IncomingMessage): Promise<string | null>;
 }
-
-/**
- * Stand-in until the LLM layer lands. It answers honestly rather than pretending
- * to be the finished bot, so a demo run is never misleading about what exists.
- */
-export class PlaceholderHandler implements MessageHandler {
-  async handle(message: IncomingMessage): Promise<string> {
-    return (
-      `Hi ${message.guest.name.split(" ")[0]}, I received your message. ` +
-      `The AI assistant isn't connected yet — that arrives in the next build step.`
-    );
-  }
-}
