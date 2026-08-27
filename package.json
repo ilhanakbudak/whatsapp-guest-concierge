@@ -17,7 +17,8 @@
     "typecheck": "tsc --noEmit",
     "lint": "eslint .",
     "format": "prettier --write .",
-    "smoke": "node scripts/smoke.mjs"
+    "smoke": "node scripts/smoke.mjs",
+    "verify": "bash scripts/verify.sh"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.121.0",

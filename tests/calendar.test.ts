@@ -210,8 +210,7 @@ describe("ScheduleService.find", () => {
 describe("CachedCalendarClient", () => {
   it("serves a repeated window from cache", async () => {
     const stub = new StubCalendar([event()]);
-    let now = 0;
-    const cached = new CachedCalendarClient(stub, { ttlMs: 60_000, now: () => now });
+    const cached = new CachedCalendarClient(stub, { ttlMs: 60_000, now: () => 0 });
     const query = { from: new Date("2026-08-27T00:00:00Z"), to: new Date("2026-08-28T00:00:00Z") };
 
     await cached.listEvents(query);
