@@ -46,8 +46,10 @@ cache across a four-message conversation.
 halfway through and nobody can tell which of the twelve guests actually heard that
 the boat leaves in ninety minutes. Every broadcast writes one row per recipient and
 is drained by a worker with bounded concurrency, exponential backoff, and delivery
-receipts fed back from Twilio's status webhook. Restart the process mid-broadcast
-and it resumes without double-sending.
+receipts fed back from Twilio's status webhook. A recipient outside WhatsApp's
+24-hour session window is failed with a reason the team can act on rather than
+retried into the same wall. Restart the process mid-broadcast and it resumes
+where it stopped.
 
 ---
 
@@ -123,6 +125,10 @@ Two ways in, because the people running a holiday don't want to open a laptop.
 **Web dashboard** — compose and preview a broadcast, add or remove guests, watch
 per-recipient delivery status, refresh the knowledge base, see token spend.
 
+Announcements support `{first_name}` and `{name}`, and every send is previewed
+first — a message to every guest at once is not undoable, so the dashboard shows
+the rendered text and the exact recipient count before anything is queued.
+
 **WhatsApp commands** — message the bot from a configured admin number:
 
 ```
@@ -184,7 +190,7 @@ a guest's first message.
 | Google Calendar integration | ✅ |
 | LLM tool-use loop (Claude / GPT / Gemini) | ✅ |
 | Knowledge base: local Markdown, Notion, Google Doc + refresh | ✅ |
-| Broadcast queue + delivery tracking | ⬜ |
+| Broadcast queue + delivery tracking | ✅ |
 | Admin dashboard + WhatsApp commands | ⬜ |
 | Docker, deploy config, n8n workflows | ⬜ |
 | Documentation + demo | ⬜ |

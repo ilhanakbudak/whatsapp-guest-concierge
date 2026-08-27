@@ -66,6 +66,16 @@ export async function buildServer(options: BuildServerOptions = {}) {
   await registerWebhookRoutes(app);
   await registerAdminRoutes(app);
 
+  // Resume anything a restart interrupted, once the server is listening.
+  // Not in tests: it would race with each test's own fixtures.
+  if (!context.config.isTest) {
+    app.addHook("onReady", async () => {
+      context.tasks.run("resume-broadcasts", async () => {
+        await context.broadcastWorker.resumeInterrupted();
+      });
+    });
+  }
+
   app.addHook("onClose", async () => context.shutdown());
 
   return app;

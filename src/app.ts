@@ -7,6 +7,7 @@ import { BackgroundTaskRunner, type TaskRunner } from "./lib/tasks.js";
 import { ConciergeHandler } from "./ai/handler.js";
 import { createLlmProvider } from "./ai/registry.js";
 import type { LlmProvider } from "./ai/types.js";
+import { BroadcastService, BroadcastWorker } from "./broadcast/index.js";
 import { createCalendarClient } from "./calendar/index.js";
 import { createKnowledgeService, type KnowledgeService } from "./knowledge/index.js";
 import { scheduleKnowledgeRefresh, type ScheduledRefresh } from "./knowledge/schedule.js";
@@ -31,6 +32,8 @@ export interface AppContext {
   schedule: ScheduleService;
   llm: LlmProvider;
   knowledgeBase: KnowledgeService;
+  broadcasts: BroadcastService;
+  broadcastWorker: BroadcastWorker;
   handler: MessageHandler;
   tasks: TaskRunner;
   rateLimiter: TokenBucketLimiter;
@@ -72,6 +75,21 @@ export function createContext(options: CreateContextOptions = {}): AppContext {
   const schedule = new ScheduleService(calendar, { timeZone: config.CALENDAR_TIMEZONE });
   const llm = options.llm ?? createLlmProvider(config);
   const knowledgeBase = createKnowledgeService(config, repos.knowledge, logger);
+  const whatsapp = options.whatsapp ?? createWhatsAppClient(config, logger);
+
+  const broadcastWorker = new BroadcastWorker({
+    broadcasts: repos.broadcasts,
+    guests: repos.guests,
+    whatsapp,
+    logger,
+    concurrency: config.BROADCAST_CONCURRENCY,
+    maxAttempts: config.BROADCAST_MAX_ATTEMPTS,
+    // Only set when there is a real public URL — pointing Twilio at localhost
+    // just produces failed callbacks in its logs.
+    ...(config.PUBLIC_URL.startsWith("https://")
+      ? { statusCallbackUrl: `${config.PUBLIC_URL}/webhooks/twilio/status` }
+      : {}),
+  });
 
   // Not scheduled in tests: a live cron timer keeps the process alive.
   const refreshJob: ScheduledRefresh | null = config.isTest
@@ -83,11 +101,13 @@ export function createContext(options: CreateContextOptions = {}): AppContext {
     logger,
     db,
     repos,
-    whatsapp: options.whatsapp ?? createWhatsAppClient(config, logger),
+    whatsapp,
     calendar,
     schedule,
     llm,
     knowledgeBase,
+    broadcasts: new BroadcastService(repos.guests, repos.broadcasts),
+    broadcastWorker,
     handler:
       options.handler ??
       new ConciergeHandler({
