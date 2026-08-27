@@ -14,7 +14,7 @@
  * Note the scope: this script needs read/write, but the bot at runtime only ever
  * asks for calendar.readonly.
  */
-import { google } from "googleapis";
+import { auth as googleAuth, calendar } from "@googleapis/calendar";
 import { readFileSync } from "node:fs";
 import { loadConfig } from "../src/config/env.js";
 import { DEMO_ITINERARY } from "../src/demo/dataset.js";
@@ -50,9 +50,9 @@ if (!raw) {
 
 const key = JSON.parse(raw) as { client_email: string; private_key: string };
 
-const api = google.calendar({
+const api = calendar({
   version: "v3",
-  auth: new google.auth.JWT({
+  auth: new googleAuth.JWT({
     email: key.client_email,
     key: key.private_key.replace(/\\n/g, "\n"),
     // Read/write, unlike the runtime client — this script creates things.

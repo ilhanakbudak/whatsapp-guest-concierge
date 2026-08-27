@@ -7,7 +7,7 @@
  *
  *   npm run check:calendar
  */
-import { google } from "googleapis";
+import { auth as googleAuth, calendar } from "@googleapis/calendar";
 import { readFileSync } from "node:fs";
 import { loadConfig } from "../src/config/env.js";
 import { GoogleCalendarClient } from "../src/calendar/google.js";
@@ -41,13 +41,13 @@ console.log("credentials");
 console.log(`  project        ${key.project_id ?? "(unknown)"}`);
 console.log(`  service acct   ${key.client_email}`);
 
-const auth = new google.auth.JWT({
+const auth = new googleAuth.JWT({
   email: key.client_email,
   key: (JSON.parse(raw) as { private_key: string }).private_key.replace(/\\n/g, "\n"),
   scopes: ["https://www.googleapis.com/auth/calendar.readonly"],
 });
 
-const api = google.calendar({ version: "v3", auth });
+const api = calendar({ version: "v3", auth });
 
 // --- 2. What can this account see? ------------------------------------------
 

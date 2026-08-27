@@ -1,8 +1,9 @@
 import { readFileSync } from "node:fs";
-// Auth comes from googleapis' own bundled google-auth-library. Importing JWT
-// from a separately-installed copy yields a nominally different type that the
-// calendar client refuses.
-import { google, type calendar_v3 } from "googleapis";
+// The per-API package rather than the `googleapis` meta-package: that one bundles
+// every Google API and is 182 MB, of which this service uses one. Auth is taken
+// from the same package, because a separately-installed google-auth-library
+// yields a nominally different JWT type the client refuses.
+import { auth, calendar, type calendar_v3 } from "@googleapis/calendar";
 import { UpstreamError } from "../lib/errors.js";
 import { fromZonedTime } from "../lib/datetime.js";
 import type { CalendarClient, CalendarEvent, EventQuery } from "./types.js";
@@ -66,9 +67,9 @@ export class GoogleCalendarClient implements CalendarClient {
 
     const key = loadServiceAccount(options);
 
-    this.calendar = google.calendar({
+    this.calendar = calendar({
       version: "v3",
-      auth: new google.auth.JWT({
+      auth: new auth.JWT({
         email: key.client_email,
         key: key.private_key,
         scopes: SCOPES,

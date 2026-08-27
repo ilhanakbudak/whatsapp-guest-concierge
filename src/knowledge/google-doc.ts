@@ -1,6 +1,7 @@
 import { createHash } from "node:crypto";
 import { readFileSync } from "node:fs";
-import { google, type docs_v1 } from "googleapis";
+// Per-API package — see the note in src/calendar/google.ts.
+import { auth, docs, type docs_v1 } from "@googleapis/docs";
 import { UpstreamError } from "../lib/errors.js";
 import type { KnowledgeBaseProvider, KnowledgeBaseSnapshot } from "./types.js";
 
@@ -58,9 +59,9 @@ export class GoogleDocKnowledgeBase implements KnowledgeBaseProvider {
 
     const key = JSON.parse(raw) as { client_email: string; private_key: string };
 
-    this.api = google.docs({
+    this.api = docs({
       version: "v1",
-      auth: new google.auth.JWT({
+      auth: new auth.JWT({
         email: key.client_email,
         key: key.private_key.replace(/\\n/g, "\n"),
         scopes: SCOPES,
