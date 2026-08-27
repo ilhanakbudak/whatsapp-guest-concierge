@@ -99,6 +99,13 @@ const schema = z.object({
   NOTION_PAGE_ID: z.string().optional(),
   GOOGLE_DOC_ID: z.string().optional(),
 
+  /**
+   * The browser chat at /simulator. It runs the real pipeline without a Twilio
+   * signature, so it is a deliberate bypass: defaults to on outside production,
+   * and requires the admin token when production has it enabled.
+   */
+  SIMULATOR_ENABLED: bool.optional(),
+
   ADMIN_API_TOKEN: z.string().default("change-me"),
   ADMIN_PHONE_NUMBERS: z.string().default(""),
 
@@ -123,6 +130,8 @@ export interface AppConfig extends RawEnv {
   llmModel: string;
   /** Parsed ADMIN_PHONE_NUMBERS. */
   adminPhoneNumbers: string[];
+  /** Whether the browser simulator is served. */
+  simulatorEnabled: boolean;
   isProduction: boolean;
   isTest: boolean;
 }
@@ -241,6 +250,7 @@ export function loadConfig(source: NodeJS.ProcessEnv = process.env): AppConfig {
     adminPhoneNumbers: env.ADMIN_PHONE_NUMBERS.split(",")
       .map((n) => n.trim())
       .filter(Boolean),
+    simulatorEnabled: env.SIMULATOR_ENABLED ?? env.NODE_ENV !== "production",
     isProduction: env.NODE_ENV === "production",
     isTest: env.NODE_ENV === "test",
   };

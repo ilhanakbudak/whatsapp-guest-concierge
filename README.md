@@ -9,7 +9,7 @@
 <p align="center">
   <a href="https://github.com/ilhanakbudak/whatsapp-guest-concierge/actions/workflows/ci.yml">
     <img alt="CI" src="https://github.com/ilhanakbudak/whatsapp-guest-concierge/actions/workflows/ci.yml/badge.svg"></a>
-  <img alt="Tests" src="https://img.shields.io/badge/tests-313%20passing-3fb950">
+  <img alt="Tests" src="https://img.shields.io/badge/tests-364%20passing-3fb950">
   <img alt="TypeScript" src="https://img.shields.io/badge/TypeScript-strict-3178c6">
   <img alt="Node" src="https://img.shields.io/badge/node-%E2%89%A522-5fa04e">
   <img alt="License" src="https://img.shields.io/badge/license-MIT-blue">
@@ -297,6 +297,16 @@ HTTP 200  [2998ms]
   from the South Jetty.
 ```
 
+Or open **http://localhost:3000/simulator** and talk to it in the browser:
+
+<p align="center">
+  <img src="docs/assets/simulator.png" alt="A browser chat with the concierge, answering a dress-code question and then a follow-up about departure time using conversation context" width="620">
+</p>
+
+The simulator drives the real pipeline — same allowlist, same model, same
+calendar. Only Twilio is left out. It is served outside production by default,
+and requires the admin token if a deployed instance turns it on.
+
 In demo mode Twilio and Google Calendar are replaced by in-memory fakes seeded
 with a plausible villa dataset. The AI path is real if you set an API key, and
 stubbed if you don't.
@@ -357,9 +367,55 @@ LLM_DEMO=true
 
 ## Admin surface
 
-Two ways in, because the people running a holiday don't want to open a laptop.
+<p align="center">
+  <img src="docs/assets/dashboard.png" alt="The admin dashboard: token usage and cache hit rate, an announcement composer, knowledge-base status, the guest list, and per-announcement delivery counts" width="960">
+</p>
 
-**HTTP** — every endpoint takes `Authorization: Bearer $ADMIN_API_TOKEN`.
+Three ways in, because the people running a holiday don't want to open a laptop.
+
+### Dashboard
+
+Served at `/dashboard`. Plain HTML and `fetch` — no framework and no build step,
+because four buttons do not justify a bundler and the brief called out
+over-engineering. Responsive, keyboard accessible, and it follows the operating
+system's light or dark theme.
+
+### WhatsApp commands
+
+The team can run the important operations by text, from a boat:
+
+```
+!broadcast Boat departs in 90 minutes. Meet at the south jetty.
+  → Ready to send to 6 guests:
+    "Hi Elena! Boat departs in 90 minutes. Meet at the south jetty."
+    Reply !confirm to send, or !cancel to discard.
+
+!confirm   → Sending to 6 guests now.
+```
+
+**`!broadcast` never sends on its own.** It stages the message, shows it rendered
+for a real guest, and waits for an explicit `!confirm` — which expires after five
+minutes, because confirming an announcement composed an hour ago could send
+something no longer true.
+
+| Command | |
+|---|---|
+| `!status` | Guests, knowledge-base freshness, model, 24-hour usage |
+| `!guests` | List active guests |
+| `!add <number> <name>` | Add or reactivate |
+| `!remove <number>` | Deactivate |
+| `!refresh` | Reload the house information now |
+| `!broadcast` / `!confirm` / `!cancel` | Staged announcements |
+
+Commands are routed on the `!` prefix rather than by asking the model to
+classify, so a command never costs a token and a typo like `!brodcast` gets
+*"Did you mean !broadcast?"* instead of being answered conversationally by a model
+that cannot actually send anything. Non-admins get a deliberately vague refusal —
+a guest does not need to learn the command surface.
+
+### HTTP API
+
+Every endpoint takes `Authorization: Bearer $ADMIN_API_TOKEN`.
 
 | Endpoint | |
 |---|---|
@@ -368,6 +424,8 @@ Two ways in, because the people running a holiday don't want to open a laptop.
 | `GET /admin/broadcasts/:id` | Per-recipient status, errors, attempt counts |
 | `GET /admin/kb` | What's loaded, and when it last changed |
 | `POST /admin/kb/refresh` | Push a document edit live now |
+| `GET /admin/guests` · `POST` · `DELETE /admin/guests/:phone` | Manage the allowlist |
+| `GET /admin/usage` | Token spend and prompt-cache hit rate |
 
 **Always preview first** — a broadcast reaches every guest at once and cannot be
 recalled:
@@ -398,7 +456,7 @@ Day-to-day runbooks are in **[docs/OPERATIONS.md](docs/OPERATIONS.md)**.
 npm run verify    # exactly what CI runs, fail-fast
 ```
 
-**313 tests.** The ones that earn their keep:
+**364 tests.** The ones that earn their keep:
 
 | Area | What is actually asserted |
 |---|---|
@@ -461,8 +519,8 @@ retired. `LLM_MODEL=claude-sonnet-5` is the current Sonnet-class equivalent.
 | LLM tool-use loop (Claude / GPT / Gemini) | ✅ |
 | Knowledge base: Markdown, Notion, Google Doc | ✅ |
 | Broadcast queue + delivery tracking | ✅ |
-| Admin dashboard + WhatsApp commands | 🚧 |
-| Docker, deploy config, n8n workflows | ⬜ |
+| Admin dashboard + WhatsApp commands | ✅ |
+| Docker, deploy config, n8n workflows | 🚧 |
 
 ## Documentation
 

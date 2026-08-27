@@ -1,7 +1,7 @@
 import { timingSafeEqual } from "node:crypto";
 import type { FastifyInstance, FastifyReply, FastifyRequest } from "fastify";
-import { errorMessage } from "../lib/errors.js";
-import { maskPhone } from "../lib/phone.js";
+import { errorMessage, ValidationError } from "../lib/errors.js";
+import { maskPhone, tryNormalizePhone } from "../lib/phone.js";
 
 /** Constant-time compare, so the token can't be recovered by timing the 401. */
 function tokensMatch(provided: string, expected: string): boolean {
@@ -27,9 +27,77 @@ interface BroadcastBody {
   dryRun?: boolean;
 }
 
+interface GuestBody {
+  phone?: string;
+  name?: string;
+  role?: "guest" | "admin";
+  notes?: string;
+}
+
 export async function registerAdminRoutes(app: FastifyInstance): Promise<void> {
   const { config, knowledgeBase, repos, broadcasts, broadcastWorker, tasks } = app.context;
   const guard = requireAdminToken(config.ADMIN_API_TOKEN);
+
+  // --- guests ---------------------------------------------------------------
+
+  app.get("/admin/guests", { preHandler: guard }, async (request) => {
+    const includeInactive = (request.query as { all?: string }).all === "true";
+    return repos.guests
+      .list(includeInactive ? {} : { activeOnly: true })
+      .map((guest) => ({ ...guest, phone: guest.phone, masked: maskPhone(guest.phone) }));
+  });
+
+  app.post<{ Body: GuestBody }>("/admin/guests", { preHandler: guard }, async (request, reply) => {
+    const phone = tryNormalizePhone(request.body?.phone ?? "");
+    if (!phone) {
+      throw new ValidationError(
+        "A valid international phone number is required, e.g. +447700900123",
+      );
+    }
+
+    const name = (request.body?.name ?? "").trim();
+    if (!name) throw new ValidationError("A name is required");
+
+    const existed = repos.guests.findByPhone(phone) !== null;
+    const guest = repos.guests.upsert({
+      phone,
+      name,
+      ...(request.body?.role ? { role: request.body.role } : {}),
+      notes: request.body?.notes ?? null,
+    });
+
+    return reply.status(existed ? 200 : 201).send(guest);
+  });
+
+  app.delete<{ Params: { phone: string } }>(
+    "/admin/guests/:phone",
+    { preHandler: guard },
+    async (request, reply) => {
+      const phone = tryNormalizePhone(decodeURIComponent(request.params.phone));
+      if (!phone) throw new ValidationError("Invalid phone number");
+
+      // Deactivate rather than delete: message history and delivery records
+      // must survive removing a guest.
+      const removed = repos.guests.deactivate(phone);
+      if (!removed) return reply.status(404).send({ error: "not_found" });
+
+      return { ok: true, phone: maskPhone(phone) };
+    },
+  );
+
+  // --- usage ----------------------------------------------------------------
+
+  app.get("/admin/usage", { preHandler: guard }, async (request) => {
+    const days = Number((request.query as { days?: string }).days ?? 7);
+    const since = new Date(Date.now() - days * 86_400_000)
+      .toISOString()
+      .replace("T", " ")
+      .slice(0, 19);
+
+    return { since, days, ...repos.usage.totalsSince(since) };
+  });
+
+  // --- knowledge base -------------------------------------------------------
 
   app.get("/admin/kb", { preHandler: guard }, async () => ({
     ...knowledgeBase.status,

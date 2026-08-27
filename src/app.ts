@@ -4,6 +4,8 @@ import { createRepositories, type Repositories } from "./db/repositories/index.j
 import { createLogger, type Logger } from "./lib/logger.js";
 import { TokenBucketLimiter } from "./lib/rate-limit.js";
 import { BackgroundTaskRunner, type TaskRunner } from "./lib/tasks.js";
+import { AdminCommandService } from "./admin/commands.js";
+import { RoutingHandler } from "./admin/routing-handler.js";
 import { ConciergeHandler } from "./ai/handler.js";
 import { createLlmProvider } from "./ai/registry.js";
 import type { LlmProvider } from "./ai/types.js";
@@ -34,6 +36,7 @@ export interface AppContext {
   knowledgeBase: KnowledgeService;
   broadcasts: BroadcastService;
   broadcastWorker: BroadcastWorker;
+  commands: AdminCommandService;
   handler: MessageHandler;
   tasks: TaskRunner;
   rateLimiter: TokenBucketLimiter;
@@ -96,6 +99,34 @@ export function createContext(options: CreateContextOptions = {}): AppContext {
     ? null
     : scheduleKnowledgeRefresh(knowledgeBase, config.KB_REFRESH_CRON, logger);
 
+  const broadcasts = new BroadcastService(repos.guests, repos.broadcasts);
+
+  const commands = new AdminCommandService({
+    guests: repos.guests,
+    usage: repos.usage,
+    broadcasts,
+    worker: broadcastWorker,
+    knowledgeBase,
+    tasks,
+    logger,
+    adminPhoneNumbers: config.adminPhoneNumbers,
+    llm: { provider: llm.name, model: llm.model },
+  });
+
+  const concierge = new ConciergeHandler({
+    provider: llm,
+    schedule,
+    knowledgeBase,
+    conversations: repos.conversations,
+    usage: repos.usage,
+    logger,
+    timeZone: config.CALENDAR_TIMEZONE,
+    maxTokens: config.LLM_MAX_TOKENS,
+    temperature: config.LLM_TEMPERATURE,
+    maxIterations: config.LLM_MAX_TOOL_ITERATIONS,
+    historyTurns: config.CONVERSATION_HISTORY_TURNS,
+  });
+
   return {
     config,
     logger,
@@ -106,23 +137,10 @@ export function createContext(options: CreateContextOptions = {}): AppContext {
     schedule,
     llm,
     knowledgeBase,
-    broadcasts: new BroadcastService(repos.guests, repos.broadcasts),
+    broadcasts,
     broadcastWorker,
-    handler:
-      options.handler ??
-      new ConciergeHandler({
-        provider: llm,
-        schedule,
-        knowledgeBase,
-        conversations: repos.conversations,
-        usage: repos.usage,
-        logger,
-        timeZone: config.CALENDAR_TIMEZONE,
-        maxTokens: config.LLM_MAX_TOKENS,
-        temperature: config.LLM_TEMPERATURE,
-        maxIterations: config.LLM_MAX_TOOL_ITERATIONS,
-        historyTurns: config.CONVERSATION_HISTORY_TURNS,
-      }),
+    commands,
+    handler: options.handler ?? new RoutingHandler(commands, concierge),
     tasks,
     rateLimiter: new TokenBucketLimiter(
       config.GUEST_RATE_LIMIT_PER_MINUTE,

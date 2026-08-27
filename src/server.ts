@@ -1,8 +1,12 @@
+import { dirname, join } from "node:path";
+import { fileURLToPath } from "node:url";
 import Fastify, { type FastifyBaseLogger } from "fastify";
 import formbody from "@fastify/formbody";
+import fastifyStatic from "@fastify/static";
 import { createContext, type AppContext } from "./app.js";
 import { isAppError } from "./lib/errors.js";
 import { registerAdminRoutes } from "./routes/admin.js";
+import { registerSimulatorRoutes } from "./routes/simulator.js";
 import { registerWebhookRoutes } from "./routes/webhook.js";
 
 declare module "fastify" {
@@ -63,8 +67,23 @@ export async function buildServer(options: BuildServerOptions = {}) {
     };
   });
 
+  // The admin pages are plain static HTML with no build step. They hold no
+  // secrets: every data call they make carries the bearer token, which the
+  // operator supplies in the browser. Resolving relative to this module puts
+  // public/ at the repository root for both `tsx src` and `node dist`.
+  const publicDir = join(dirname(fileURLToPath(import.meta.url)), "..", "public");
+  await app.register(fastifyStatic, { root: publicDir, prefix: "/", index: false });
+
+  app.get("/", async (_request, reply) => reply.redirect("/dashboard"));
+  app.get("/dashboard", async (_request, reply) => reply.sendFile("dashboard.html"));
+
+  if (context.config.simulatorEnabled) {
+    app.get("/simulator", async (_request, reply) => reply.sendFile("simulator.html"));
+  }
+
   await registerWebhookRoutes(app);
   await registerAdminRoutes(app);
+  await registerSimulatorRoutes(app);
 
   // Resume anything a restart interrupted, once the server is listening.
   // Not in tests: it would race with each test's own fixtures.
