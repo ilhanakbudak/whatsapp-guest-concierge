@@ -47,10 +47,14 @@ jobs:
       # survives into the built artefact, not just into `npm test`.
       - name: Verify it refuses to boot insecurely
         run: |
-          if docker run --rm -e DEMO_MODE=true concierge:ci 2>&1 | tee /tmp/boot.log; then
+          # No pipe: piping into tee would make `if` read tee's exit status
+          # rather than docker's, and the assertion would always pass.
+          if docker run --rm -e DEMO_MODE=true concierge:ci > /tmp/boot.log 2>&1; then
             echo "::error::container booted in production with the default ADMIN_API_TOKEN"
+            cat /tmp/boot.log
             exit 1
           fi
+          cat /tmp/boot.log
           grep -q "ADMIN_API_TOKEN must be changed" /tmp/boot.log \
             || { echo "::error::refused to boot, but not for the expected reason"; cat /tmp/boot.log; exit 1; }
           echo "correctly refused the default admin token"
