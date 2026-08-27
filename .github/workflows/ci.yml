@@ -42,12 +42,26 @@ jobs:
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
+      # The image sets NODE_ENV=production, so the config guard must reject the
+      # placeholder admin token. Asserting this here proves the safety property
+      # survives into the built artefact, not just into `npm test`.
+      - name: Verify it refuses to boot insecurely
+        run: |
+          if docker run --rm -e DEMO_MODE=true concierge:ci 2>&1 | tee /tmp/boot.log; then
+            echo "::error::container booted in production with the default ADMIN_API_TOKEN"
+            exit 1
+          fi
+          grep -q "ADMIN_API_TOKEN must be changed" /tmp/boot.log \
+            || { echo "::error::refused to boot, but not for the expected reason"; cat /tmp/boot.log; exit 1; }
+          echo "correctly refused the default admin token"
+
       - name: Start container
         run: |
           docker run -d --name concierge \
             -p 3000:3000 \
             -e DEMO_MODE=true \
             -e LOG_LEVEL=warn \
+            -e ADMIN_API_TOKEN=ci-not-a-real-token \
             concierge:ci
 
       - name: Wait for readiness
