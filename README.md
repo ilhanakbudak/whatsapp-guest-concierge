@@ -9,7 +9,7 @@
 <p align="center">
   <a href="https://github.com/ilhanakbudak/whatsapp-guest-concierge/actions/workflows/ci.yml">
     <img alt="CI" src="https://github.com/ilhanakbudak/whatsapp-guest-concierge/actions/workflows/ci.yml/badge.svg"></a>
-  <img alt="Tests" src="https://img.shields.io/badge/tests-364%20passing-3fb950">
+  <img alt="Tests" src="https://img.shields.io/badge/tests-412%20passing-3fb950">
   <img alt="TypeScript" src="https://img.shields.io/badge/TypeScript-strict-3178c6">
   <img alt="Node" src="https://img.shields.io/badge/node-%E2%89%A522-5fa04e">
   <img alt="License" src="https://img.shields.io/badge/license-MIT-blue">
@@ -512,7 +512,7 @@ Day-to-day runbooks are in **[docs/OPERATIONS.md](docs/OPERATIONS.md)**.
 npm run verify    # exactly what CI runs, fail-fast
 ```
 
-**364 tests.** The ones that earn their keep:
+**412 tests.** The ones that earn their keep:
 
 | Area | What is actually asserted |
 |---|---|
@@ -595,6 +595,19 @@ retired. `LLM_MODEL=claude-sonnet-5` is the current Sonnet-class equivalent.
 | [docs/OPERATIONS.md](docs/OPERATIONS.md) | Day-to-day: announcements, guests, KB updates |
 | [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) | Request lifecycle, tool-use flow, broadcast flow |
 | [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md) | Railway and Render |
+
+## Contributing
+
+Pull requests are welcome. [**CONTRIBUTING.md**](CONTRIBUTING.md) covers getting
+it running without any credentials, the conventions I hold the code to, how to
+add a provider, and — worth reading first — the handful of things that are
+deliberately out of scope.
+
+Found a vulnerability? Please report it privately:
+[**SECURITY.md**](SECURITY.md).
+
+Everyone taking part is expected to follow the
+[Code of Conduct](CODE_OF_CONDUCT.md).
 
 ## License
 

@@ -1,0 +1,43 @@
+name: Feature request
+description: Suggest a capability or a change of direction
+labels: ["enhancement"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Worth reading **[what is deliberately out of scope](../blob/main/CONTRIBUTING.md#what-is-deliberately-out-of-scope)**
+        first — a few reasonable-sounding things are declined on purpose, and I
+        would rather not have you spend a weekend on one of them.
+
+        Making the case against one of those decisions is a legitimate use of
+        this form. I have been wrong before.
+
+  - type: textarea
+    id: problem
+    attributes:
+      label: What problem does this solve?
+      description: >
+        The situation, not the solution. "A host with two properties has to run
+        two deployments" tells me more than "add a properties table".
+    validations:
+      required: true
+
+  - type: textarea
+    id: proposal
+    attributes:
+      label: What you have in mind
+    validations:
+      required: true
+
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: What else you considered
+      description: Including doing nothing, and why that is not enough.
+
+  - type: checkboxes
+    id: contribute
+    attributes:
+      label: Would you be willing to implement it?
+      options:
+        - label: Yes, if we agree on the approach first

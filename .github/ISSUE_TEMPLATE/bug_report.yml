@@ -1,0 +1,85 @@
+name: Bug report
+description: Something behaves differently from what the documentation says
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for taking the time. The fields below are the ones I would
+        otherwise have to ask for, which is usually a day of round-trips.
+
+        **Do not report a security vulnerability here** — use
+        [private reporting](https://github.com/ilhanakbudak/whatsapp-guest-concierge/security/advisories/new)
+        instead.
+
+  - type: textarea
+    id: what-happened
+    attributes:
+      label: What happened
+      description: And what you expected instead.
+    validations:
+      required: true
+
+  - type: textarea
+    id: reproduce
+    attributes:
+      label: How to reproduce
+      description: >
+        The smallest sequence that shows it. `npm run simulate -- "…"` posts a
+        correctly signed webhook without needing a phone or a Twilio account,
+        and is usually the shortest path to a reproduction.
+      placeholder: |
+        1. npm run seed
+        2. npm run dev
+        3. npm run simulate -- "what time is the boat?"
+        4. …
+    validations:
+      required: true
+
+  - type: textarea
+    id: logs
+    attributes:
+      label: Relevant log output
+      description: >
+        Redact anything real. Logs redact phone numbers in production but not in
+        development.
+      render: shell
+
+  - type: dropdown
+    id: mode
+    attributes:
+      label: Which integrations were live?
+      multiple: true
+      options:
+        - Demo mode — everything mocked
+        - Twilio
+        - Google Calendar
+        - Notion or Google Docs
+        - A model provider (Claude / GPT / Gemini)
+    validations:
+      required: true
+
+  - type: input
+    id: version
+    attributes:
+      label: Commit or version
+      placeholder: "git rev-parse --short HEAD"
+    validations:
+      required: true
+
+  - type: input
+    id: node
+    attributes:
+      label: Node version
+      placeholder: "node --version"
+    validations:
+      required: true
+
+  - type: checkboxes
+    id: checks
+    attributes:
+      label: Before submitting
+      options:
+        - label: "`npm run verify` passes on an unmodified checkout of the same commit"
+        - label: I searched existing issues
+          required: true
